@@ -4,3 +4,6 @@ client/dist/
 .env
 .env.*
 !.env.example
+
+# Cliente de Prisma generado (se regenera con `npm install` / `npx prisma generate`)
+server/src/generated/

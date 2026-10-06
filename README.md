@@ -6,25 +6,29 @@ Plataforma web académica para que estudiantes de la UTN intercambien materiales
 
 ## Stack
 
-| Capa | Tecnología | Estado |
-|------|------------|--------|
-| Frontend | React + Vite + TypeScript | Configurado |
-| Backend | Node.js + Express + TypeScript | Configurado |
-| Base de datos | PostgreSQL + Prisma | Pendiente (tarjeta posterior) |
+| Capa          | Tecnología                     | Estado      |
+| ------------- | ------------------------------ | ----------- |
+| Frontend      | React + Vite + TypeScript      | Configurado |
+| Backend       | Node.js + Express + TypeScript | Configurado |
+| Base de datos | PostgreSQL 16 + Prisma 7       | Configurado |
 
 ## Requisitos previos
 
 - **Node.js** >= 20 (LTS recomendado)
 - **npm** >= 10 (incluido con Node)
+- **Docker** con Docker Compose (para la base de datos local)
 
 ## Estructura del proyecto
 
 ```text
 /
-├── client/          # Frontend React + Vite
-├── server/          # Backend Express + TypeScript
-├── package.json     # Monorepo (npm workspaces)
-├── eslint.config.mjs # ESLint compartido
+├── client/             # Frontend React + Vite
+├── server/             # Backend Express + TypeScript
+│   └── prisma/         # Schema, migraciones y seed de la base de datos
+├── docs/               # Documentación (diagrama entidad-relación)
+├── docker-compose.yml  # PostgreSQL para desarrollo
+├── package.json        # Monorepo (npm workspaces)
+├── eslint.config.mjs   # ESLint compartido
 └── README.md
 ```
 
@@ -47,13 +51,38 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-| Variable | Paquete | Descripción |
-|----------|---------|-------------|
-| `PORT` | server | Puerto del backend (default: 3001) |
-| `CLIENT_URL` | server | URL del frontend para CORS |
-| `VITE_API_URL` | client | URL base del backend |
+| Variable       | Paquete | Descripción                                                                   |
+| -------------- | ------- | ----------------------------------------------------------------------------- |
+| `PORT`         | server  | Puerto del backend (default: 3001)                                            |
+| `CLIENT_URL`   | server  | URL del frontend para CORS                                                    |
+| `DATABASE_URL` | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`) |
+| `VITE_API_URL` | client  | URL base del backend                                                          |
 
-### 3. Levantar en desarrollo
+### 3. Base de datos
+
+Levantá PostgreSQL con Docker, aplicá las migraciones y cargá los datos de prueba:
+
+```bash
+npm run db:up        # docker compose up -d
+npm run db:migrate   # npx prisma migrate dev (crea las tablas)
+npm run seed         # carga 5 usuarios y 20 ítems de ejemplo
+```
+
+Todos los usuarios del seed (`tomas@utn.edu.ar`, `luca@utn.edu.ar`, `facundo@utn.edu.ar`, `joaquin@utn.edu.ar`, `martina@utn.edu.ar`) tienen la contraseña `Trueque123`. El seed borra y vuelve a crear los datos, así que se puede correr cuantas veces haga falta.
+
+Otros comandos útiles (desde `server/`):
+
+```bash
+npx prisma studio            # explorar la base en el navegador
+npx prisma migrate dev --name <cambio>   # crear una migración después de editar schema.prisma
+npx prisma migrate reset     # borrar la base, reaplicar migraciones y correr el seed
+```
+
+El cliente de Prisma se genera en `server/src/generated/` (no se versiona) automáticamente al hacer `npm install`. Si cambiás el schema, `migrate dev` lo regenera. En el código se usa la instancia única de `server/src/lib/prisma.ts`.
+
+El modelo de datos está documentado en [`docs/der.md`](docs/der.md).
+
+### 4. Levantar en desarrollo
 
 Desde la raíz del proyecto:
 
@@ -65,7 +94,7 @@ Esto inicia el backend en `http://localhost:3001` y el frontend en `http://local
 
 Abrí el navegador en `http://localhost:5173`. Deberías ver **TruequeUTN** y el estado del backend en **ok**.
 
-### 4. Otros comandos
+### 5. Otros comandos
 
 ```bash
 npm run lint      # ESLint en client y server
@@ -82,11 +111,11 @@ npm run dev -w client
 
 ## Estrategia de ramas
 
-| Rama | Propósito |
-|------|-----------|
-| `main` | Código estable y deployable. Protegida: solo se actualiza vía Pull Request. |
-| `develop` | Integración de features antes de llegar a `main`. |
-| `feature/HU-XX-descripcion` | Una rama por historia de usuario o tarjeta técnica. |
+| Rama                        | Propósito                                                                   |
+| --------------------------- | --------------------------------------------------------------------------- |
+| `main`                      | Código estable y deployable. Protegida: solo se actualiza vía Pull Request. |
+| `develop`                   | Integración de features antes de llegar a `main`.                           |
+| `feature/HU-XX-descripcion` | Una rama por historia de usuario o tarjeta técnica.                         |
 
 Ejemplo: `feature/HU-01-registro-usuario`, `feature/TEC-01-setup-repo`.
 

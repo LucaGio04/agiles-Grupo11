@@ -1,0 +1,118 @@
+// Modelo de datos de TruequeUTN (TEC-02)
+// Diagrama entidad-relación: /docs/der.md
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Categoria {
+  LIBRO
+  APUNTE
+  CALCULADORA
+  INSTRUMENTAL
+  OTRO
+}
+
+enum EstadoConservacion {
+  NUEVO
+  BUENO
+  USADO
+}
+
+enum EstadoItem {
+  DISPONIBLE
+  RESERVADO
+  INTERCAMBIADO
+  PAUSADO
+}
+
+enum EstadoPropuesta {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+  CANCELADA
+  CONCRETADA
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  email        String   @unique
+  passwordHash String
+  carrera      String
+  createdAt    DateTime @default(now())
+
+  items                   Item[]     @relation("ItemOwner")
+  propuestasEnviadas      Proposal[] @relation("ProposalProponente")
+  propuestasRecibidas     Proposal[] @relation("ProposalReceptor")
+  calificacionesDadas     Rating[]   @relation("RatingEvaluador")
+  calificacionesRecibidas Rating[]   @relation("RatingEvaluado")
+}
+
+model Item {
+  id                 Int                @id @default(autoincrement())
+  titulo             String
+  descripcion        String?
+  categoria          Categoria
+  estadoConservacion EstadoConservacion
+  materia            String?
+  fotoUrl            String?
+  estado             EstadoItem         @default(DISPONIBLE)
+  ownerId            Int
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  owner               User       @relation("ItemOwner", fields: [ownerId], references: [id])
+  propuestasRecibidas Proposal[] @relation("ProposalItemSolicitado")
+  propuestasOfrecido  Proposal[] @relation("ProposalItemOfrecido")
+
+  @@index([ownerId])
+  @@index([estado, createdAt])
+}
+
+model Proposal {
+  id               Int             @id @default(autoincrement())
+  itemSolicitadoId Int
+  itemOfrecidoId   Int
+  proponenteId     Int
+  receptorId       Int
+  mensaje          String?
+  estado           EstadoPropuesta @default(PENDIENTE)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  itemSolicitado Item     @relation("ProposalItemSolicitado", fields: [itemSolicitadoId], references: [id])
+  itemOfrecido   Item     @relation("ProposalItemOfrecido", fields: [itemOfrecidoId], references: [id])
+  proponente     User     @relation("ProposalProponente", fields: [proponenteId], references: [id])
+  receptor       User     @relation("ProposalReceptor", fields: [receptorId], references: [id])
+  calificaciones Rating[]
+
+  @@index([proponenteId, estado])
+  @@index([receptorId, estado])
+  @@index([itemSolicitadoId])
+  @@index([itemOfrecidoId])
+}
+
+model Rating {
+  id          Int      @id @default(autoincrement())
+  proposalId  Int
+  evaluadorId Int
+  evaluadoId  Int
+  /// Puntaje de 1 a 5 (CHECK constraint en la migración inicial)
+  puntaje     Int
+  comentario  String?
+  createdAt   DateTime @default(now())
+
+  proposal  Proposal @relation(fields: [proposalId], references: [id])
+  evaluador User     @relation("RatingEvaluador", fields: [evaluadorId], references: [id])
+  evaluado  User     @relation("RatingEvaluado", fields: [evaluadoId], references: [id])
+
+  @@unique([proposalId, evaluadorId])
+  @@index([evaluadoId])
+}
