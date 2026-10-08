@@ -1,10 +1,12 @@
+import { ComingSoon } from '../components/ui/ComingSoon.tsx';
+
 // Destino después del login. El listado real de ítems se implementa en su propia historia;
 // por ahora muestra un placeholder del listado.
 export function ItemsPage() {
   return (
-    <>
-      <h1>Ítems disponibles</h1>
-      <p className="muted">El listado de ítems todavía no está disponible.</p>
-    </>
+    <ComingSoon
+      title="¡Estamos armando TruequeUTN!"
+      message="Muy pronto vas a poder publicar los materiales que ya no usás, buscar los que necesitás y proponer un intercambio a otros estudiantes de la UTN."
+    />
   );
 }

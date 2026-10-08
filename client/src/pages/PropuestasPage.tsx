@@ -1,8 +1,10 @@
+import { ComingSoon } from '../components/ui/ComingSoon.tsx';
+
 export function PropuestasPage() {
   return (
-    <>
-      <h1>Propuestas de intercambio</h1>
-      <p className="muted">El listado de propuestas todavía no está disponible.</p>
-    </>
+    <ComingSoon
+      title="Propuestas"
+      message="Acá vas a ver las propuestas de intercambio que envíes y recibas."
+    />
   );
 }

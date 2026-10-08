@@ -1,12 +1,10 @@
-import { useParams } from 'react-router';
+import { ComingSoon } from '../components/ui/ComingSoon.tsx';
 
 export function ItemDetailPage() {
-  const { id } = useParams<{ id: string }>();
-
   return (
-    <>
-      <h1>Detalle del ítem</h1>
-      <p className="muted">Ítem #{id} — pantalla pendiente de implementación.</p>
-    </>
+    <ComingSoon
+      title="Detalle del material"
+      message="Pronto vas a poder ver el detalle de cada material y proponer un intercambio."
+    />
   );
 }
