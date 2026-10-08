@@ -1,41 +1,40 @@
-import { useEffect, useState } from 'react';
-
-type HealthStatus = 'loading' | 'ok' | 'error';
+import { Navigate, Route, Routes } from 'react-router';
+import { RedirectIfAuthenticated, RequireAuth } from './auth/guards.tsx';
+import { ItemsPage } from './pages/ItemsPage.tsx';
+import { LoginPage } from './pages/LoginPage.tsx';
+import { RegisterPage } from './pages/RegisterPage.tsx';
 
 function App() {
-  const [status, setStatus] = useState<HealthStatus>('loading');
-
-  useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL;
-
-    fetch(`${apiUrl}/api/health`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Health check failed');
-        }
-        return response.json() as Promise<{ status: string }>;
-      })
-      .then((data) => {
-        setStatus(data.status === 'ok' ? 'ok' : 'error');
-      })
-      .catch(() => {
-        setStatus('error');
-      });
-  }, []);
-
   return (
-    <main className="app">
-      <h1>TruequeUTN</h1>
-      <p className="subtitle">Plataforma de intercambio de materiales de estudio</p>
-      <section className="health">
-        <h2>Estado del backend</h2>
-        {status === 'loading' && <p className="status loading">Conectando...</p>}
-        {status === 'ok' && <p className="status ok">ok</p>}
-        {status === 'error' && (
-          <p className="status error">No se pudo conectar con el backend</p>
-        )}
-      </section>
-    </main>
+    <Routes>
+      {/* La página de inicio del sistema es el login (o el listado si ya hay sesión). */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route
+        path="/login"
+        element={
+          <RedirectIfAuthenticated>
+            <LoginPage />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/registro"
+        element={
+          <RedirectIfAuthenticated>
+            <RegisterPage />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/items"
+        element={
+          <RequireAuth>
+            <ItemsPage />
+          </RequireAuth>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
