@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { AppError } from '../errors/AppError.js';
 import { signToken } from '../lib/jwt.js';
 import { prisma } from '../lib/prisma.js';
-import type { LoginInput } from '../schemas/auth.schema.js';
+import type { LoginInput, RegisterInput } from '../schemas/auth.schema.js';
 
 // Campos del usuario que se pueden devolver en la API (nunca el passwordHash).
 const publicUserFields = { id: true, nombre: true, email: true, carrera: true } as const;
@@ -35,4 +35,29 @@ export async function getCurrentUser(id: number) {
     throw AppError.unauthorized('La sesión ya no es válida, volvé a iniciar sesión');
   }
   return user;
+}
+
+// Registra un nuevo estudiante institucional (HU-01).
+export async function register({ nombre, email, password, carrera }: RegisterInput) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  if (existing) {
+    throw AppError.conflict('Ese email ya tiene una cuenta');
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const user = await prisma.user.create({
+    data: {
+      nombre: nombre.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      carrera: carrera.trim(),
+    },
+    select: publicUserFields,
+  });
+
+  const token = signToken({ id: user.id, email: user.email });
+  return { user, token };
 }

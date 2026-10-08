@@ -8,3 +8,7 @@ export const login: RequestHandler = async (req, res) => {
 export const me: RequestHandler = async (req, res) => {
   res.json({ user: await authService.getCurrentUser(req.user!.id) });
 };
+
+export const register: RequestHandler = async (req, res) => {
+  res.status(201).json(await authService.register(req.body));
+};

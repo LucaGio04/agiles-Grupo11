@@ -24,7 +24,7 @@ export function createApp(apiRouter: Router = routes) {
         }
         callback(new AppError(403, 'CORS_NOT_ALLOWED', `Origen no permitido por CORS: ${origin}`));
       },
-    }),
+    })
   );
   app.use(express.json());
 

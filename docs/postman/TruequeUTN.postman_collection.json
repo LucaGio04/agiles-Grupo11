@@ -21,6 +21,55 @@
       "name": "Auth",
       "item": [
         {
+          "name": "Registro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Lucas Romero\",\n  \"email\": \"lucas.romero@utn.edu.ar\",\n  \"password\": \"Trueque1234\",\n  \"carrera\": \"Ingeniería en Sistemas\"\n}"
+            },
+            "description": "Crea una cuenta institucional (HU-01).\n\nBody: { nombre, email, password, carrera }.\n- Email normalizado a minúsculas y restringido al dominio institucional.\n- Contraseña hasheada con bcrypt (mínimo 10 rondas).\n\nRespuestas:\n- 201 { user: { id, nombre, email, carrera }, token } — creado y sesión iniciada\n- 400 VALIDATION_ERROR — formato inválido, dominio no institucional o contraseña menor a 8 caracteres\n- 409 CONFLICT — \"Ese email ya tiene una cuenta\""
+          },
+          "response": [
+            {
+              "name": "201 - Cuenta creada",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"user\": {\n    \"id\": 6,\n    \"nombre\": \"Lucas Romero\",\n    \"email\": \"lucas.romero@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\"\n  },\n  \"token\": \"<jwt>\"\n}"
+            },
+            {
+              "name": "400 - Email no institucional",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.email\",\n        \"message\": \"Usá tu mail institucional\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "409 - Email duplicado",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Ese email ya tiene una cuenta\"\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "Login",
           "event": [
             {
