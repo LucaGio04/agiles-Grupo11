@@ -20,6 +20,9 @@ export type AuthStatus = 'checking' | 'authenticated' | 'anonymous';
 export type AuthContextValue = {
   user: User | null;
   status: AuthStatus;
+  token: string | null;
+  isAuthenticated: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
