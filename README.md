@@ -98,6 +98,7 @@ Abrí el navegador en `http://localhost:5173`. Deberías ver **TruequeUTN** y el
 
 ```bash
 npm run lint      # ESLint en client y server
+npm test          # Tests del servidor (node:test)
 npm run build     # Compila ambos paquetes
 npm run format    # Prettier en todo el repo
 ```
@@ -108,6 +109,42 @@ Para levantar un paquete por separado:
 npm run dev -w server
 npm run dev -w client
 ```
+
+## Backend: cómo agregar un endpoint
+
+El servidor está organizado por capas dentro de `server/src/`:
+
+```text
+routes/       # Define las URLs y encadena validación + controller
+controllers/  # Lee el request, llama al service y arma la respuesta
+services/     # Lógica de negocio; único lugar que usa Prisma (lib/prisma.ts)
+middlewares/  # validate (Zod), notFound y errorHandler
+errors/       # AppError: errores controlados con status y código
+```
+
+Para sumar un recurso: crear `routes/<recurso>.routes.ts`, su controller y su service, y montar el router en `routes/index.ts` (todo queda bajo `/api`).
+
+**Validación.** Los schemas de Zod se pasan al middleware `validate`; el controller recibe `req.body` / `req.query` / `req.params` ya parseados:
+
+```ts
+router.post('/', validate({ body: createItemSchema }), itemsController.create);
+```
+
+**Errores.** Todas las respuestas de error tienen el mismo formato:
+
+```json
+{ "error": { "code": "VALIDATION_ERROR", "message": "...", "details": [] } }
+```
+
+| Caso                              | Status | `code`             |
+| --------------------------------- | ------ | ------------------ |
+| Body/query/params inválidos       | 400    | `VALIDATION_ERROR` |
+| JSON mal formado                  | 400    | `INVALID_JSON`     |
+| Origen no permitido por CORS      | 403    | `CORS_NOT_ALLOWED` |
+| Ruta inexistente                  | 404    | `NOT_FOUND`        |
+| Error no controlado               | 500    | `INTERNAL_ERROR`   |
+
+En los services y controllers alcanza con lanzar un `AppError` (por ejemplo `throw AppError.notFound('Ítem no encontrado')`): el middleware global lo convierte en la respuesta. No hace falta `try/catch` en handlers `async`, Express 5 reenvía el error solo. Con `NODE_ENV=production` el 500 no incluye el mensaje ni el stack.
 
 ## Estrategia de ramas
 
