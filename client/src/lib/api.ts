@@ -1,4 +1,14 @@
+import { tokenStorage } from '../auth/tokenStorage.ts';
+
 const API_URL = import.meta.env.VITE_API_URL;
+
+const SKIP_UNAUTHORIZED_PATHS = ['/api/auth/login', '/api/auth/register', '/api/auth/me'];
+
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
 
 // Error de la API con el formato estándar del backend: { error: { code, message } }.
 export class ApiError extends Error {
@@ -19,6 +29,12 @@ type RequestOptions = {
   token?: string | null;
 };
 
+function shouldSkipUnauthorizedHandler(path: string) {
+  return SKIP_UNAUTHORIZED_PATHS.some(
+    (skipPath) => path === skipPath || path.startsWith(`${skipPath}?`)
+  );
+}
+
 // Wrapper de fetch para la API: agrega JSON y el token, y convierte las respuestas de error en ApiError.
 // Si no hay conexión con el backend, fetch lanza un TypeError que se propaga tal cual.
 export async function apiFetch<T>(
@@ -27,7 +43,9 @@ export async function apiFetch<T>(
 ) {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const authToken = token !== undefined ? token : tokenStorage.get();
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
 
   const res = await fetch(`${API_URL}${path}`, {
     method,
@@ -37,6 +55,10 @@ export async function apiFetch<T>(
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
+    if (res.status === 401 && !shouldSkipUnauthorizedHandler(path)) {
+      unauthorizedHandler?.();
+    }
+
     const error = (
       data as { error?: { code?: string; message?: string; details?: unknown } } | null
     )?.error;

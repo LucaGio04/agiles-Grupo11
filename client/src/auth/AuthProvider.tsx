@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ApiError, apiFetch } from '../lib/api.ts';
+import { ApiError, apiFetch, setUnauthorizedHandler } from '../lib/api.ts';
 import { AuthContext, type AuthStatus, type RegisterData, type User } from './AuthContext.ts';
 import { tokenStorage } from './tokenStorage.ts';
 
@@ -10,6 +10,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>(() =>
     tokenStorage.get() ? 'checking' : 'anonymous'
   );
+
+  const logout = useCallback(() => {
+    tokenStorage.clear();
+    setUser(null);
+    setStatus('anonymous');
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(logout);
+    return () => setUnauthorizedHandler(null);
+  }, [logout]);
 
   // Al cargar la app, si hay un token guardado se valida contra el backend para restaurar la sesión.
   useEffect(() => {
@@ -56,14 +67,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('authenticated');
   }, []);
 
-  const logout = useCallback(() => {
-    tokenStorage.clear();
-    setUser(null);
-    setStatus('anonymous');
-  }, []);
-
   const value = useMemo(
-    () => ({ user, status, login, register, logout }),
+    () => ({
+      user,
+      status,
+      token: tokenStorage.get(),
+      isAuthenticated: status === 'authenticated',
+      loading: status === 'checking',
+      login,
+      register,
+      logout,
+    }),
     [user, status, login, register, logout]
   );
 
