@@ -1,0 +1,80 @@
+{
+  "info": {
+    "name": "TruequeUTN API",
+    "description": "Endpoints del backend de TruequeUTN. Importar en Postman (File → Import). La variable baseUrl apunta al server local; el request de login guarda el token en la variable token para usarlo en los endpoints protegidos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health",
+        "description": "Verifica que el server esté levantado. Responde 200 { status: \"ok\" }."
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tomas@utn.edu.ar\",\n  \"password\": \"Trueque123\"\n}"
+            },
+            "description": "Inicia sesión (HU-02).\n\nBody: { email, password }. El email se normaliza a minúsculas.\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera }, token } — JWT que expira en 24 h\n- 400 VALIDATION_ERROR — falta un campo o el email no tiene formato válido\n- 401 INVALID_CREDENTIALS — \"Email o contraseña incorrectos\" (mismo mensaje si el email no existe o la contraseña es incorrecta)"
+          },
+          "response": [
+            {
+              "name": "200 - Credenciales correctas",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"email\": \"tomas@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\"\n  },\n  \"token\": \"<jwt>\"\n}"
+            },
+            {
+              "name": "401 - Credenciales incorrectas",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"INVALID_CREDENTIALS\",\n    \"message\": \"Email o contraseña incorrectos\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Usuario actual",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "description": "Devuelve el usuario del token. El front lo usa al recargar la página para restaurar la sesión.\n\nHeader: Authorization: Bearer <token> (se completa solo después de correr Login).\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera } }\n- 401 UNAUTHORIZED — sin token, token vencido o adulterado, o el usuario ya no existe"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -25,7 +25,7 @@ Plataforma web académica para que estudiantes de la UTN intercambien materiales
 ├── client/             # Frontend React + Vite
 ├── server/             # Backend Express + TypeScript
 │   └── prisma/         # Schema, migraciones y seed de la base de datos
-├── docs/               # Documentación (diagrama entidad-relación)
+├── docs/               # Documentación (diagrama entidad-relación, colección de Postman)
 ├── docker-compose.yml  # PostgreSQL para desarrollo
 ├── package.json        # Monorepo (npm workspaces)
 ├── eslint.config.mjs   # ESLint compartido
@@ -93,7 +93,7 @@ npm run dev
 
 Esto inicia el backend en `http://localhost:3001` y el frontend en `http://localhost:5173`.
 
-Abrí el navegador en `http://localhost:5173`. Deberías ver **TruequeUTN** y el estado del backend en **ok**.
+Abrí el navegador en `http://localhost:5173`: la página de inicio es el **login**. Podés ingresar con cualquier usuario del seed (por ejemplo `tomas@utn.edu.ar` / `Trueque123`).
 
 ### 5. Otros comandos
 
@@ -110,6 +110,27 @@ Para levantar un paquete por separado:
 npm run dev -w server
 npm run dev -w client
 ```
+
+## Endpoints
+
+La colección de Postman con todos los endpoints, ejemplos y respuestas está en [`docs/postman/TruequeUTN.postman_collection.json`](docs/postman/TruequeUTN.postman_collection.json) (en Postman: _File → Import_). El request de login guarda el token para usarlo en los endpoints protegidos.
+
+| Método | Ruta              | Auth | Descripción                                  |
+| ------ | ----------------- | ---- | -------------------------------------------- |
+| GET    | `/api/health`     | No   | Estado del server                            |
+| POST   | `/api/auth/login` | No   | Inicia sesión: devuelve `{ user, token }`    |
+| GET    | `/api/auth/me`    | Sí   | Usuario del token (para restaurar la sesión) |
+
+## Frontend: rutas y sesión
+
+| Ruta        | Acceso     | Pantalla                                            |
+| ----------- | ---------- | --------------------------------------------------- |
+| `/`         | Todos      | Redirige a `/login` (o a `/items` si ya hay sesión) |
+| `/login`    | Sin sesión | Inicio de sesión, con link a "Crear cuenta"         |
+| `/registro` | Sin sesión | Registro de usuario (pendiente, HU-01)              |
+| `/items`    | Con sesión | Listado de ítems, con el botón "Salir"              |
+
+La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen envolviéndolas en `<RequireAuth>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 
 ## Backend: cómo agregar un endpoint
 
@@ -148,14 +169,15 @@ Los tokens se generan con `signToken({ id, email })` de `lib/jwt.ts`. Sin token,
 { "error": { "code": "VALIDATION_ERROR", "message": "...", "details": [] } }
 ```
 
-| Caso                            | Status | `code`             |
-| ------------------------------- | ------ | ------------------ |
-| Body/query/params inválidos     | 400    | `VALIDATION_ERROR` |
-| JSON mal formado                | 400    | `INVALID_JSON`     |
-| Sin token, vencido o adulterado | 401    | `UNAUTHORIZED`     |
-| Origen no permitido por CORS    | 403    | `CORS_NOT_ALLOWED` |
-| Ruta inexistente                | 404    | `NOT_FOUND`        |
-| Error no controlado             | 500    | `INTERNAL_ERROR`   |
+| Caso                            | Status | `code`                |
+| ------------------------------- | ------ | --------------------- |
+| Body/query/params inválidos     | 400    | `VALIDATION_ERROR`    |
+| JSON mal formado                | 400    | `INVALID_JSON`        |
+| Email o contraseña incorrectos  | 401    | `INVALID_CREDENTIALS` |
+| Sin token, vencido o adulterado | 401    | `UNAUTHORIZED`        |
+| Origen no permitido por CORS    | 403    | `CORS_NOT_ALLOWED`    |
+| Ruta inexistente                | 404    | `NOT_FOUND`           |
+| Error no controlado             | 500    | `INTERNAL_ERROR`      |
 
 En los services y controllers alcanza con lanzar un `AppError` (por ejemplo `throw AppError.notFound('Ítem no encontrado')`): el middleware global lo convierte en la respuesta. No hace falta `try/catch` en handlers `async`, Express 5 reenvía el error solo. Con `NODE_ENV=production` el 500 no incluye el mensaje ni el stack.
 
