@@ -5,7 +5,8 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly code: string,
-    message: string
+    message: string,
+    public readonly details?: unknown
   ) {
     super(message);
     this.name = 'ApiError';
@@ -36,11 +37,14 @@ export async function apiFetch<T>(
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const error = (data as { error?: { code?: string; message?: string } } | null)?.error;
+    const error = (
+      data as { error?: { code?: string; message?: string; details?: unknown } } | null
+    )?.error;
     throw new ApiError(
       res.status,
       error?.code ?? 'UNKNOWN_ERROR',
-      error?.message ?? 'Error inesperado del servidor'
+      error?.message ?? 'Error inesperado del servidor',
+      error?.details
     );
   }
   return data as T;

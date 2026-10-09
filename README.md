@@ -115,11 +115,12 @@ npm run dev -w client
 
 La colección de Postman con todos los endpoints, ejemplos y respuestas está en [`docs/postman/TruequeUTN.postman_collection.json`](docs/postman/TruequeUTN.postman_collection.json) (en Postman: _File → Import_). El request de login guarda el token para usarlo en los endpoints protegidos.
 
-| Método | Ruta              | Auth | Descripción                                  |
-| ------ | ----------------- | ---- | -------------------------------------------- |
-| GET    | `/api/health`     | No   | Estado del server                            |
-| POST   | `/api/auth/login` | No   | Inicia sesión: devuelve `{ user, token }`    |
-| GET    | `/api/auth/me`    | Sí   | Usuario del token (para restaurar la sesión) |
+| Método | Ruta                 | Auth | Descripción                                              |
+| ------ | -------------------- | ---- | -------------------------------------------------------- |
+| GET    | `/api/health`        | No   | Estado del server                                        |
+| POST   | `/api/auth/register` | No   | Crea una cuenta institucional: `{ user, token }` (HU-01) |
+| POST   | `/api/auth/login`    | No   | Inicia sesión: devuelve `{ user, token }`                |
+| GET    | `/api/auth/me`       | Sí   | Usuario del token (para restaurar la sesión)             |
 
 ## Frontend: rutas y sesión
 
@@ -127,7 +128,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | ----------- | ---------- | --------------------------------------------------- |
 | `/`         | Todos      | Redirige a `/login` (o a `/items` si ya hay sesión) |
 | `/login`    | Sin sesión | Inicio de sesión, con link a "Crear cuenta"         |
-| `/registro` | Sin sesión | Registro de usuario (pendiente, HU-01)              |
+| `/registro` | Sin sesión | Formulario de registro institucional (HU-01)        |
 | `/items`    | Con sesión | Listado de ítems, con el botón "Salir"              |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen envolviéndolas en `<RequireAuth>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.

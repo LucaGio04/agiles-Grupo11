@@ -19,7 +19,7 @@ testRouter.post(
   }),
   (req, res) => {
     res.json({ body: req.body, query: req.query });
-  },
+  }
 );
 testRouter.get('/test/boom', () => {
   throw new Error('fallo secreto');

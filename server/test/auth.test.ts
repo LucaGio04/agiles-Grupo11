@@ -28,12 +28,34 @@ const findUnique = mock.fn(async ({ where, select }: FindUniqueArgs) => {
   if (!select) return dbUser;
   return Object.fromEntries(Object.keys(select).map((k) => [k, dbUser[k as keyof typeof dbUser]]));
 });
-Object.defineProperty(prisma, 'user', { value: { findUnique }, configurable: true });
+
+type CreateArgs = {
+  data: { nombre: string; email: string; passwordHash: string; carrera: string };
+  select?: Record<string, boolean>;
+};
+const create = mock.fn(async ({ data, select }: CreateArgs) => {
+  const created = { id: 2, ...data, createdAt: new Date() };
+  if (!select) return created;
+  return Object.fromEntries(
+    Object.keys(select).map((k) => [k, created[k as keyof typeof created]])
+  );
+});
+
+Object.defineProperty(prisma, 'user', { value: { findUnique, create }, configurable: true });
 
 const server = createApp().listen(0);
 let baseUrl = '';
 
-type ErrorResponse = { error: { code: string; message: string } };
+type ErrorResponse = {
+  error: { code: string; message: string; details?: { field: string; message: string }[] };
+};
+
+const register = (body: unknown) =>
+  fetch(`${baseUrl}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 
 const login = (body: unknown) =>
   fetch(`${baseUrl}/api/auth/login`, {
@@ -126,5 +148,104 @@ describe('GET /api/auth/me', () => {
     const res = await getMe(signToken({ id: 99, email: 'borrado@utn.edu.ar' }));
     assert.equal(res.status, 401);
     assert.equal(((await res.json()) as ErrorResponse).error.code, 'UNAUTHORIZED');
+  });
+});
+
+describe('POST /api/auth/register', () => {
+  beforeEach(() => {
+    findUnique.mock.resetCalls();
+    create.mock.resetCalls();
+  });
+
+  const validRegisterPayload = {
+    nombre: 'Luca Giordano',
+    email: 'luca.nuevo@utn.edu.ar',
+    password: 'PasswordSegura123',
+    carrera: 'Ingeniería en Sistemas',
+  };
+
+  it('con datos válidos devuelve 201 con el usuario y un token de sesión', async () => {
+    const res = await register(validRegisterPayload);
+    assert.equal(res.status, 201);
+
+    const body = (await res.json()) as {
+      user: { id: number; nombre: string; email: string; carrera: string };
+      token: string;
+    };
+    assert.equal(body.user.nombre, validRegisterPayload.nombre);
+    assert.equal(body.user.email, validRegisterPayload.email);
+    assert.equal(body.user.carrera, validRegisterPayload.carrera);
+    assert.ok(body.token);
+
+    const payload = jwt.verify(body.token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+    assert.equal(payload.sub, '2');
+    assert.equal(payload.exp! - payload.iat!, 24 * 60 * 60);
+  });
+
+  it('nunca devuelve el hash de la contraseña en la respuesta', async () => {
+    const res = await register(validRegisterPayload);
+    const text = await res.text();
+    assert.ok(!text.includes('passwordHash'));
+    assert.ok(!text.includes(validRegisterPayload.password));
+  });
+
+  it('normaliza el email guardándolo en minúsculas y sin espacios', async () => {
+    await register({
+      ...validRegisterPayload,
+      email: '  LUCA.MAYUSCULAS@UTN.EDU.AR  ',
+    });
+
+    const call = create.mock.calls[0];
+    assert.equal(call.arguments[0].data.email, 'luca.mayusculas@utn.edu.ar');
+  });
+
+  it('hashea la contraseña con bcrypt (al menos 10 rondas)', async () => {
+    await register(validRegisterPayload);
+    const call = create.mock.calls[0];
+    const passwordHash = call.arguments[0].data.passwordHash;
+
+    assert.ok(passwordHash.startsWith('$2'));
+    assert.ok(await bcrypt.compare(validRegisterPayload.password, passwordHash));
+  });
+
+  it('dado un email no institucional responde 400 y mensaje "Usá tu mail institucional"', async () => {
+    const res = await register({
+      ...validRegisterPayload,
+      email: 'alumno@gmail.com',
+    });
+
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as ErrorResponse;
+    assert.equal(body.error.code, 'VALIDATION_ERROR');
+    const emailIssue = body.error.details?.find((d) => d.field.includes('email'));
+    assert.equal(emailIssue?.message, 'Usá tu mail institucional');
+    assert.equal(create.mock.callCount(), 0);
+  });
+
+  it('dado un email ya registrado responde 409 y mensaje "Ese email ya tiene una cuenta"', async () => {
+    const res = await register({
+      ...validRegisterPayload,
+      email: dbUser.email,
+    });
+
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as ErrorResponse;
+    assert.equal(body.error.code, 'CONFLICT');
+    assert.equal(body.error.message, 'Ese email ya tiene una cuenta');
+    assert.equal(create.mock.callCount(), 0);
+  });
+
+  it('dada una contraseña de menos de 8 caracteres responde 400', async () => {
+    const res = await register({
+      ...validRegisterPayload,
+      password: '1234567',
+    });
+
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as ErrorResponse;
+    assert.equal(body.error.code, 'VALIDATION_ERROR');
+    const pwdIssue = body.error.details?.find((d) => d.field.includes('password'));
+    assert.equal(pwdIssue?.message, 'La contraseña debe tener al menos 8 caracteres');
+    assert.equal(create.mock.callCount(), 0);
   });
 });

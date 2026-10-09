@@ -22,7 +22,11 @@ export function validate(schemas: Schemas): RequestHandler {
       const result = schema.safeParse(req[part] ?? {});
       if (result.success) {
         // En Express 5 `req.query` es un getter, por eso no se puede asignar directamente.
-        Object.defineProperty(req, part, { value: result.data, writable: true, configurable: true });
+        Object.defineProperty(req, part, {
+          value: result.data,
+          writable: true,
+          configurable: true,
+        });
         continue;
       }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ApiError, apiFetch } from '../lib/api.ts';
-import { AuthContext, type AuthStatus, type User } from './AuthContext.ts';
+import { AuthContext, type AuthStatus, type RegisterData, type User } from './AuthContext.ts';
 import { tokenStorage } from './tokenStorage.ts';
 
 type AuthResponse = { user: User; token: string };
@@ -46,13 +46,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('authenticated');
   }, []);
 
+  const register = useCallback(async (data: RegisterData) => {
+    const { user, token } = await apiFetch<AuthResponse>('/api/auth/register', {
+      method: 'POST',
+      body: data,
+    });
+    tokenStorage.set(token);
+    setUser(user);
+    setStatus('authenticated');
+  }, []);
+
   const logout = useCallback(() => {
     tokenStorage.clear();
     setUser(null);
     setStatus('anonymous');
   }, []);
 
-  const value = useMemo(() => ({ user, status, login, logout }), [user, status, login, logout]);
+  const value = useMemo(
+    () => ({ user, status, login, register, logout }),
+    [user, status, login, register, logout]
+  );
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }
