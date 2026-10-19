@@ -99,18 +99,21 @@
   background-color: #1a1a1a;
 }
 
+/* El menú no ocupa todo el espacio libre: queda pegado a la derecha del header */
 .navbar-menu {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex: 1;
+  gap: 1.25rem;
+  flex: 0 1 auto;
+  margin-left: auto;
   min-width: 0;
 }
 
 .navbar-search {
-  flex: 1;
+  flex: 0 1 260px;
   min-width: 0;
-  max-width: 360px;
+  width: 260px;
+  max-width: 260px;
 }
 
 .navbar-search input {
@@ -129,7 +132,7 @@
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   flex-shrink: 0;
 }
 
@@ -156,6 +159,57 @@
   white-space: nowrap;
 }
 
+/* Usuario + Salir, al final de la derecha */
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-left: 1.25rem;
+  border-left: 1px solid #e3e3e3;
+  flex-shrink: 0;
+}
+
+.navbar-user-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+  border-radius: 999px;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.navbar-user-link:hover {
+  background-color: #eee;
+}
+
+.navbar-user-link-active {
+  color: var(--color-primary);
+  background-color: #e8f0fa;
+}
+
+.navbar-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.navbar-user-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .not-found-page {
   text-align: center;
 }
@@ -174,6 +228,7 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
+    margin-left: 0;
     padding: 1rem;
     background-color: #fff;
     border-bottom: 1px solid #e3e3e3;
@@ -190,6 +245,7 @@
   }
 
   .navbar-search {
+    flex: none;
     max-width: none;
     width: 100%;
   }
@@ -205,8 +261,16 @@
     text-align: center;
   }
 
+  .navbar-user {
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    padding-left: 0;
+    border-top: 1px solid #e3e3e3;
+    border-left: none;
+  }
+
   .navbar-logout {
-    width: 100%;
+    width: auto;
   }
 }
 

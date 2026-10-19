@@ -4,7 +4,7 @@ import { useAuth } from '../../auth/useAuth.ts';
 import { Button } from '../ui/Button.tsx';
 
 export function Navbar() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,7 +46,10 @@ export function Navbar() {
           <span className="navbar-toggle-bar" />
         </button>
 
-        <div id="navbar-menu" className={['navbar-menu', menuOpen ? 'navbar-menu-open' : ''].join(' ')}>
+        <div
+          id="navbar-menu"
+          className={['navbar-menu', menuOpen ? 'navbar-menu-open' : ''].join(' ')}
+        >
           <form className="navbar-search" onSubmit={handleSearch}>
             <input
               type="search"
@@ -77,20 +80,28 @@ export function Navbar() {
             >
               Propuestas
             </NavLink>
-            <NavLink
-              to="/perfil"
-              className={({ isActive }) =>
-                isActive ? 'navbar-link navbar-link-active' : 'navbar-link'
-              }
-              onClick={closeMenu}
-            >
-              Perfil
-            </NavLink>
           </nav>
 
-          <Button variant="secondary" className="navbar-logout" onClick={handleLogout}>
-            Salir
-          </Button>
+          <div className="navbar-user">
+            {user && (
+              <NavLink
+                to="/perfil"
+                className={({ isActive }) =>
+                  isActive ? 'navbar-user-link navbar-user-link-active' : 'navbar-user-link'
+                }
+                title="Ir a mi perfil"
+                onClick={closeMenu}
+              >
+                <span className="navbar-avatar" aria-hidden="true">
+                  {user.nombre.trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="navbar-user-name">{user.nombre}</span>
+              </NavLink>
+            )}
+            <Button variant="secondary" className="navbar-logout" onClick={handleLogout}>
+              Salir
+            </Button>
+          </div>
         </div>
       </div>
     </header>
