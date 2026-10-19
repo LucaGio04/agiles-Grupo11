@@ -89,10 +89,10 @@ export function RegisterPage() {
       });
     } catch (err: unknown) {
       if (err instanceof ApiError) {
+        // Los errores de un campo se muestran solo debajo de ese campo; el aviso general
+        // queda para lo que no corresponde a ningún campo.
         if (err.status === 409) {
-          const conflictMsg = 'Ese email ya tiene una cuenta';
-          setFieldErrors((prev) => ({ ...prev, email: conflictMsg }));
-          setGeneralError(conflictMsg);
+          setFieldErrors((prev) => ({ ...prev, email: 'Ese email ya tiene una cuenta' }));
         } else if (err.status === 400 && Array.isArray(err.details)) {
           const newErrors: FieldErrors = {};
           for (const item of err.details as { field: string; message: string }[]) {
@@ -102,7 +102,9 @@ export function RegisterPage() {
             else if (item.field.includes('carrera')) newErrors.carrera = item.message;
           }
           setFieldErrors(newErrors);
-          setGeneralError(err.message);
+          if (Object.keys(newErrors).length === 0) {
+            setGeneralError(err.message);
+          }
         } else {
           setGeneralError(err.message);
         }
@@ -271,7 +273,7 @@ export function RegisterPage() {
         </form>
 
         <p className="auth-switch">
-          ¿Ya tenés cuenta? <Link to="/login">Ya tengo cuenta</Link>
+          ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link>
         </p>
       </div>
     </main>
