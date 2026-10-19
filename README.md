@@ -51,13 +51,14 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-| Variable       | Paquete | Descripción                                                                    |
-| -------------- | ------- | ------------------------------------------------------------------------------ |
-| `PORT`         | server  | Puerto del backend (default: 3001)                                             |
-| `CLIENT_URL`   | server  | URL del frontend para CORS                                                     |
-| `DATABASE_URL` | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)  |
-| `JWT_SECRET`   | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio |
-| `VITE_API_URL` | client  | URL base del backend                                                           |
+| Variable               | Paquete | Descripción                                                                        |
+| ---------------------- | ------- | ---------------------------------------------------------------------------------- |
+| `PORT`                 | server  | Puerto del backend (default: 3001)                                                 |
+| `CLIENT_URL`           | server  | URL del frontend para CORS                                                         |
+| `DATABASE_URL`         | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)      |
+| `JWT_SECRET`           | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio     |
+| `ALLOWED_EMAIL_DOMAIN` | server  | Dominio institucional para el registro (default: `utn.edu.ar`, acepta subdominios) |
+| `VITE_API_URL`         | client  | URL base del backend                                                               |
 
 ### 3. Base de datos
 
@@ -124,14 +125,19 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 
 ## Frontend: rutas y sesión
 
-| Ruta        | Acceso     | Pantalla                                            |
-| ----------- | ---------- | --------------------------------------------------- |
-| `/`         | Todos      | Redirige a `/login` (o a `/items` si ya hay sesión) |
-| `/login`    | Sin sesión | Inicio de sesión, con link a "Crear cuenta"         |
-| `/registro` | Sin sesión | Formulario de registro institucional (HU-01)        |
-| `/items`    | Con sesión | Listado de ítems, con el botón "Salir"              |
+| Ruta          | Acceso     | Pantalla                                                          |
+| ------------- | ---------- | ----------------------------------------------------------------- |
+| `/login`      | Sin sesión | Inicio de sesión, con link a "Crear cuenta"                       |
+| `/registro`   | Sin sesión | Registro institucional (HU-01); al crear la cuenta queda logueado |
+| `/`           | Con sesión | Inicio (listado de ítems, pendiente de HU-04)                     |
+| `/items/:id`  | Con sesión | Detalle de un ítem (pendiente)                                    |
+| `/publicar`   | Con sesión | Publicar un material (pendiente de HU-03)                         |
+| `/propuestas` | Con sesión | Propuestas de intercambio (pendiente)                             |
+| `/perfil`     | Con sesión | Perfil del usuario (pendiente)                                    |
 
-La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen envolviéndolas en `<RequireAuth>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
+Sin sesión, las rutas privadas redirigen a `/login`, y con sesión `/login` y `/registro` redirigen al inicio. Las rutas privadas comparten el layout con el navbar (buscador, links, usuario logueado y botón "Salir").
+
+La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `isAuthenticated`, `loading`, `login`, `register`, `logout`), y las rutas se protegen con `<PrivateRoute>` (solo con sesión, como ruta padre) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 
 ## Backend: cómo agregar un endpoint
 
