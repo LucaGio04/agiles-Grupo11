@@ -20,6 +20,7 @@ type FieldErrors = {
   nombre?: string;
   email?: string;
   password?: string;
+  confirmPassword?: string;
   carrera?: string;
 };
 
@@ -29,6 +30,7 @@ export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [carrera, setCarrera] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -54,6 +56,13 @@ export function RegisterPage() {
 
     if (password.length < 8) {
       errors.password = 'La contraseña debe tener al menos 8 caracteres';
+    }
+
+    // Solo se controla en el front: el back recibe una única contraseña.
+    if (!confirmPassword) {
+      errors.confirmPassword = 'Repetí la contraseña';
+    } else if (confirmPassword !== password) {
+      errors.confirmPassword = 'Las contraseñas no coinciden';
     }
 
     setFieldErrors(errors);
@@ -228,6 +237,30 @@ export function RegisterPage() {
             {fieldErrors.password && (
               <span className="field-error" role="alert">
                 {fieldErrors.password}
+              </span>
+            )}
+          </label>
+
+          <label className="field">
+            <span>Repetir contraseña</span>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="confirmPassword"
+              autoComplete="new-password"
+              placeholder="Volvé a escribir la contraseña"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (fieldErrors.confirmPassword) {
+                  setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                }
+              }}
+              className={fieldErrors.confirmPassword ? 'input-error' : ''}
+              required
+            />
+            {fieldErrors.confirmPassword && (
+              <span className="field-error" role="alert">
+                {fieldErrors.confirmPassword}
               </span>
             )}
           </label>
