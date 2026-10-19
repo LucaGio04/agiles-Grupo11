@@ -214,7 +214,8 @@
   text-align: center;
 }
 
-@media (max-width: 768px) {
+/* Por debajo de 880px no entran buscador, links y usuario en una fila: se pasa al menú hamburguesa */
+@media (max-width: 880px) {
   .navbar-toggle {
     display: flex;
   }
