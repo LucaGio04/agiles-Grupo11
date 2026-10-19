@@ -23,14 +23,6 @@ type FieldErrors = {
   carrera?: string;
 };
 
-function isInstitutionalEmail(email: string) {
-  const normalized = email.trim().toLowerCase();
-  const parts = normalized.split('@');
-  if (parts.length !== 2) return false;
-  const host = parts[1];
-  return host === 'utn.edu.ar' || host.endsWith('.utn.edu.ar');
-}
-
 export function RegisterPage() {
   const { register } = useAuth();
   const [nombre, setNombre] = useState('');
@@ -50,11 +42,10 @@ export function RegisterPage() {
       errors.nombre = 'Ingresá tu nombre completo';
     }
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
+    // El dominio institucional lo valida solo el back (ALLOWED_EMAIL_DOMAIN), para no tenerlo
+    // configurado en dos lugares. Si no es de la UTN, el 400 trae el mensaje para este campo.
+    if (!email.trim()) {
       errors.email = 'Ingresá tu email';
-    } else if (!trimmedEmail.includes('@') || !isInstitutionalEmail(trimmedEmail)) {
-      errors.email = 'Usá tu mail institucional';
     }
 
     if (!carrera.trim()) {
