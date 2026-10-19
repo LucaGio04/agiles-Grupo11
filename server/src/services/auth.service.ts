@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { AppError } from '../errors/AppError.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { signToken } from '../lib/jwt.js';
 import { prisma } from '../lib/prisma.js';
 import type { LoginInput, RegisterInput } from '../schemas/auth.schema.js';
@@ -48,15 +49,25 @@ export async function register({ nombre, email, password, carrera }: RegisterInp
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const user = await prisma.user.create({
-    data: {
-      nombre: nombre.trim(),
-      email: normalizedEmail,
-      passwordHash,
-      carrera: carrera.trim(),
-    },
-    select: publicUserFields,
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        nombre: nombre.trim(),
+        email: normalizedEmail,
+        passwordHash,
+        carrera: carrera.trim(),
+      },
+      select: publicUserFields,
+    });
+  } catch (err) {
+    // Dos registros simultáneos con el mismo email pasan el findUnique y el segundo
+    // choca con el índice único (P2002): se responde 409 igual que en el caso normal.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw AppError.conflict('Ese email ya tiene una cuenta');
+    }
+    throw err;
+  }
 
   const token = signToken({ id: user.id, email: user.email });
   return { user, token };

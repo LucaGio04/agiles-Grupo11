@@ -5,6 +5,7 @@ import { after, before, beforeEach, describe, it, mock } from 'node:test';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createApp } from '../src/app.js';
+import { Prisma } from '../src/generated/prisma/client.js';
 import { signToken } from '../src/lib/jwt.js';
 import { prisma } from '../src/lib/prisma.js';
 
@@ -233,6 +234,26 @@ describe('POST /api/auth/register', () => {
     assert.equal(body.error.code, 'CONFLICT');
     assert.equal(body.error.message, 'Ese email ya tiene una cuenta');
     assert.equal(create.mock.callCount(), 0);
+  });
+
+  it('si otro registro con el mismo email se adelanta (P2002) responde 409, no 500', async () => {
+    // Simula la carrera: findUnique no encuentra el email, pero el create choca con el índice único.
+    create.mock.mockImplementationOnce(async () => {
+      throw new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed on the fields: (`email`)',
+        {
+          code: 'P2002',
+          clientVersion: 'test',
+        }
+      );
+    });
+
+    const res = await register(validRegisterPayload);
+
+    assert.equal(res.status, 409);
+    const body = (await res.json()) as ErrorResponse;
+    assert.equal(body.error.code, 'CONFLICT');
+    assert.equal(body.error.message, 'Ese email ya tiene una cuenta');
   });
 
   it('dada una contraseña de menos de 8 caracteres responde 400', async () => {
