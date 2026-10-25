@@ -83,8 +83,7 @@ export function PublicarPage() {
 
     try {
       const { item } = await apiFetch<{ item: Item }>('/api/items', { method: 'POST', body });
-      // El detalle del ítem es HU-05: mientras tanto se vuelve al inicio con un mensaje de confirmación.
-      navigate('/', { state: { flash: `¡Publicaste "${item.titulo}"!` } });
+      navigate(`/items/${item.id}`, { state: { flash: '¡Listo! Tu material ya está publicado.' } });
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 400 && Array.isArray(err.details)) {

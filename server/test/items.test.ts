@@ -19,7 +19,28 @@ const create = mock.fn(async ({ data }: CreateArgs) => ({
   updatedAt: new Date(),
 }));
 
-Object.defineProperty(prisma, 'item', { value: { create }, configurable: true });
+// Un único ítem guardado (id 7), del usuario 1, con dos calificaciones recibidas.
+const storedItem = {
+  id: 7,
+  titulo: 'Calculadora Casio fx-82',
+  descripcion: null,
+  categoria: 'CALCULADORA',
+  estadoConservacion: 'BUENO',
+  materia: 'Física I',
+  fotoUrl: null,
+  estado: 'RESERVADO',
+  ownerId: 1,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  owner: { id: 1, nombre: 'Tomás Bellizzi', carrera: 'Ingeniería en Sistemas' },
+};
+const findUnique = mock.fn(async ({ where }: { where: { id: number } }) =>
+  where.id === storedItem.id ? storedItem : null
+);
+const aggregate = mock.fn(async () => ({ _avg: { puntaje: 4.5 }, _count: 2 }));
+
+Object.defineProperty(prisma, 'item', { value: { create, findUnique }, configurable: true });
+Object.defineProperty(prisma, 'rating', { value: { aggregate }, configurable: true });
 
 const server = createApp().listen(0);
 let baseUrl = '';
@@ -145,5 +166,54 @@ describe('POST /api/items', () => {
     assert.equal(res.status, 401);
     assert.equal(((await res.json()) as ErrorResponse).error.code, 'UNAUTHORIZED');
     assert.equal(create.mock.callCount(), 0);
+  });
+});
+
+describe('GET /api/items/:id', () => {
+  const getItem = (id: string, authToken: string | null = token) =>
+    fetch(`${baseUrl}/api/items/${id}`, {
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    });
+
+  it('devuelve el ítem y su dueño con nombre, carrera y reputación', async () => {
+    const res = await getItem('7');
+    assert.equal(res.status, 200);
+
+    const body = (await res.json()) as { item: Record<string, unknown>; owner: unknown };
+    assert.equal(body.item.titulo, storedItem.titulo);
+    assert.equal(body.item.owner, undefined);
+    assert.deepEqual(body.owner, {
+      id: 1,
+      nombre: 'Tomás Bellizzi',
+      carrera: 'Ingeniería en Sistemas',
+      reputacion: { promedio: 4.5, cantidad: 2 },
+    });
+  });
+
+  it('es visible aunque el ítem esté RESERVADO', async () => {
+    const body = (await (await getItem('7')).json()) as { item: { estado: string } };
+    assert.equal(body.item.estado, 'RESERVADO');
+  });
+
+  it('nunca expone el email ni la contraseña del dueño', async () => {
+    const text = await (await getItem('7')).text();
+    assert.ok(!text.includes('email'));
+    assert.ok(!text.includes('passwordHash'));
+  });
+
+  it('si el ítem no existe responde 404', async () => {
+    const res = await getItem('999');
+    assert.equal(res.status, 404);
+    assert.equal(((await res.json()) as ErrorResponse).error.code, 'NOT_FOUND');
+  });
+
+  it('con un id que no es numérico responde 400', async () => {
+    const res = await getItem('abc');
+    assert.equal(res.status, 400);
+  });
+
+  it('sin token responde 401', async () => {
+    const res = await getItem('7', null);
+    assert.equal(res.status, 401);
   });
 });

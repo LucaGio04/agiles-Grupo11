@@ -40,3 +40,19 @@ export type CreateItemData = {
   materia?: string;
   fotoUrl?: string;
 };
+
+export const ESTADOS_ITEM: Record<EstadoItem, string> = {
+  DISPONIBLE: 'Disponible',
+  RESERVADO: 'Reservado',
+  INTERCAMBIADO: 'Intercambiado',
+  PAUSADO: 'Pausado',
+};
+
+export type ItemOwner = {
+  id: number;
+  nombre: string;
+  carrera: string;
+  reputacion: { promedio: number | null; cantidad: number };
+};
+
+export type ItemDetail = { item: Item; owner: ItemOwner };

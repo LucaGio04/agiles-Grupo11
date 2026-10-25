@@ -193,6 +193,50 @@
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
+        },
+        {
+          "name": "Detalle de ítem",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/items/7",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- Visible en cualquier estado (por ejemplo RESERVADO).\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\""
+          },
+          "response": [
+            {
+              "name": "200 - Detalle",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"item\": {\n    \"id\": 7,\n    \"titulo\": \"Calculadora Casio fx-82\",\n    \"descripcion\": \"Funciona perfecto, con tapa\",\n    \"categoria\": \"CALCULADORA\",\n    \"estadoConservacion\": \"BUENO\",\n    \"materia\": \"Física I\",\n    \"fotoUrl\": null,\n    \"estado\": \"DISPONIBLE\",\n    \"ownerId\": 1,\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n    \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n  },\n  \"owner\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"carrera\": \"Ingeniería en Sistemas\",\n    \"reputacion\": {\n      \"promedio\": 4.5,\n      \"cantidad\": 2\n    }\n  }\n}"
+            },
+            {
+              "name": "404 - No existe",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}"
+            }
+          ]
         }
       ]
     }
