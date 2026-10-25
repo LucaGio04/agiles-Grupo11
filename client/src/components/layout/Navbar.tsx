@@ -29,8 +29,15 @@ export function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
-          TruequeUTN
+        <NavLink
+          to="/"
+          className="navbar-brand"
+          onClick={closeMenu}
+          aria-label="TruequeUTN, inicio"
+        >
+          <span className="wordmark">
+            Trueque<span className="wordmark-utn">UTN</span>
+          </span>
         </NavLink>
 
         <button
@@ -46,7 +53,10 @@ export function Navbar() {
           <span className="navbar-toggle-bar" />
         </button>
 
-        <div id="navbar-menu" className={['navbar-menu', menuOpen ? 'navbar-menu-open' : ''].join(' ')}>
+        <div
+          id="navbar-menu"
+          className={['navbar-menu', menuOpen ? 'navbar-menu-open' : ''].join(' ')}
+        >
           <form className="navbar-search" onSubmit={handleSearch}>
             <input
               type="search"

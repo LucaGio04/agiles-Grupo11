@@ -116,7 +116,9 @@ export function RegisterPage() {
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <h1>TruequeUTN</h1>
+        <h1 className="wordmark">
+          Trueque<span className="wordmark-utn">UTN</span>
+        </h1>
         <p className="subtitle">
           Intercambiá materiales de estudio con otros estudiantes de la UTN
         </p>
