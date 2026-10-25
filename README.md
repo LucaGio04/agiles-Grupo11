@@ -121,6 +121,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | POST   | `/api/auth/register` | No   | Crea una cuenta institucional: `{ user, token }` (HU-01) |
 | POST   | `/api/auth/login`    | No   | Inicia sesión: devuelve `{ user, token }`                |
 | GET    | `/api/auth/me`       | Sí   | Usuario del token (para restaurar la sesión)             |
+| POST   | `/api/items`         | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03) |
 
 ## Frontend: rutas y sesión
 
@@ -130,6 +131,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | `/login`    | Sin sesión | Inicio de sesión, con link a "Crear cuenta"         |
 | `/registro` | Sin sesión | Formulario de registro institucional (HU-01)        |
 | `/items`    | Con sesión | Listado de ítems, con el botón "Salir"              |
+| `/publicar` | Con sesión | Formulario para publicar un material (HU-03)        |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen envolviéndolas en `<RequireAuth>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 
