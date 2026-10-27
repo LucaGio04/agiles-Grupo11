@@ -1,18 +1,36 @@
 import { useState, type FormEvent } from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../../auth/useAuth.ts';
 import { Button } from '../ui/Button.tsx';
 
 export function Navbar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
+  const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
+  const onHome = pathname === '/';
+
+  // El buscador muestra la búsqueda de la URL del inicio (?q=), así queda al día si se limpia
+  // desde el listado o se vuelve atrás con el navegador.
+  const urlQuery = onHome ? (searchParams.get('q') ?? '') : '';
+  const [query, setQuery] = useState(urlQuery);
+  const [syncedQuery, setSyncedQuery] = useState(urlQuery);
+  if (urlQuery !== syncedQuery) {
+    setSyncedQuery(urlQuery);
+    setQuery(urlQuery);
+  }
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Busca en el inicio. Si ya se estaba filtrando por categoría, el filtro se mantiene (HU-04).
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const params = new URLSearchParams();
+    const categoria = onHome ? searchParams.get('categoria') : null;
     const trimmed = query.trim();
-    navigate(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : '/');
+    if (trimmed) params.set('q', trimmed);
+    if (categoria) params.set('categoria', categoria);
+    const search = params.toString();
+    navigate(search ? `/?${search}` : '/');
     setMenuOpen(false);
   }
 
@@ -46,7 +64,10 @@ export function Navbar() {
           <span className="navbar-toggle-bar" />
         </button>
 
-        <div id="navbar-menu" className={['navbar-menu', menuOpen ? 'navbar-menu-open' : ''].join(' ')}>
+        <div
+          id="navbar-menu"
+          className={['navbar-menu', menuOpen ? 'navbar-menu-open' : ''].join(' ')}
+        >
           <form className="navbar-search" onSubmit={handleSearch}>
             <input
               type="search"

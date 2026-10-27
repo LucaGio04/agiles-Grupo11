@@ -1,0 +1,265 @@
+/*
+ * Listado del inicio con búsqueda y filtros (HU-04).
+ * Las variables llevan un valor de respaldo: así se ve bien con los estilos actuales y toma
+ * los colores y tipografías de la identidad visual cuando esas variables estén definidas.
+ */
+
+/* Foto del ítem (componente ItemPhoto). Si no tiene foto, imagen genérica según la categoría. */
+.item-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--surface, #fff);
+}
+
+.item-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.item-photo-generic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--accent-soft, #e8f0fa);
+  background-image:
+    linear-gradient(var(--grid, rgb(31 95 168 / 8%)) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid, rgb(31 95 168 / 8%)) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.item-photo-initial {
+  font-family: var(--font-display, inherit);
+  font-weight: 900;
+  font-size: clamp(4rem, 14vw, 7rem);
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.item-photo-label {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.items-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.items-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+.items-header h1 {
+  margin: 0;
+  font-size: var(--text-xl, clamp(1.6rem, 4vw, 2.25rem));
+  overflow-wrap: anywhere;
+}
+
+.items-header p {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+}
+
+/* Chips de categoría: en celular se desplazan de costado en vez de ocupar varias filas. */
+.category-chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.category-chip {
+  flex-shrink: 0;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background-color: var(--surface, #fff);
+  color: var(--ink, #1a1a1a);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.category-chip:hover {
+  border-color: var(--color-muted);
+}
+
+/* La categoría elegida queda marcada con resaltador, igual que la sección activa del menú. */
+.category-chip[aria-pressed='true'] {
+  border-color: var(--ink, #1a1a1a);
+  background-color: var(--highlight, #ffe45c);
+  color: #18212b;
+  font-weight: 700;
+}
+
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--surface, #fff);
+  box-shadow: var(--shadow, 0 1px 3px rgb(0 0 0 / 8%));
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.item-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.item-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.item-card .item-photo {
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+}
+
+.item-card .item-photo-initial {
+  font-size: 3.5rem;
+}
+
+.item-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.item-card-category {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.item-card-title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-card-meta {
+  display: flex;
+  gap: 0.35rem 0.75rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.item-card-condition {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--ink, #1a1a1a);
+}
+
+.item-card-subject {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pagination-status {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.items-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.9rem;
+  max-width: 560px;
+  margin: 1rem 0;
+}
+
+/* En celular las tarjetas pasan a una fila (foto chica + datos), así entran varias por pantalla. */
+@media (max-width: 480px) {
+  .items-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .item-card {
+    flex-direction: row;
+  }
+
+  .item-card .item-photo {
+    flex: 0 0 96px;
+    aspect-ratio: 1;
+    border-bottom: none;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .item-card .item-photo-initial {
+    font-size: 2.25rem;
+  }
+
+  .item-card .item-photo-label {
+    display: none;
+  }
+
+  .item-card-body {
+    min-width: 0;
+    padding: 0.7rem 0.85rem;
+  }
+}

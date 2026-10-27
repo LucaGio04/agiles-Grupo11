@@ -1,0 +1,41 @@
+// Tipos y etiquetas de los ítems. Los valores coinciden con los enums de Prisma del backend.
+
+export const CATEGORIAS = {
+  LIBRO: 'Libro',
+  APUNTE: 'Apunte',
+  CALCULADORA: 'Calculadora',
+  INSTRUMENTAL: 'Instrumental',
+  OTRO: 'Otro',
+} as const;
+
+export const ESTADOS_CONSERVACION = {
+  NUEVO: 'Nuevo',
+  BUENO: 'Bueno',
+  USADO: 'Usado',
+} as const;
+
+export type Categoria = keyof typeof CATEGORIAS;
+export type EstadoConservacion = keyof typeof ESTADOS_CONSERVACION;
+export type EstadoItem = 'DISPONIBLE' | 'RESERVADO' | 'INTERCAMBIADO' | 'PAUSADO';
+
+export type Item = {
+  id: number;
+  titulo: string;
+  descripcion: string | null;
+  categoria: Categoria;
+  estadoConservacion: EstadoConservacion;
+  materia: string | null;
+  fotoUrl: string | null;
+  estado: EstadoItem;
+  ownerId: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Respuesta de GET /api/items (HU-04).
+export type ItemsPageResult = {
+  data: Item[];
+  page: number;
+  totalPages: number;
+  total: number;
+};
