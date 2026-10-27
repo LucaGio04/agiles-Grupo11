@@ -30,6 +30,9 @@ export const createItemSchema = z.object({
 
 export type CreateItemInput = z.infer<typeof createItemSchema>;
 
+const INVALID_ITEM_ID = 'El id del ítem no es válido';
+
+// Mismo mensaje para cualquier id inválido: no numérico (abc), decimal (7.5), cero o negativo.
 export const itemIdParamsSchema = z.object({
-  id: z.coerce.number().int().positive('El id del ítem no es válido'),
+  id: z.coerce.number({ error: INVALID_ITEM_ID }).int(INVALID_ITEM_ID).positive(INVALID_ITEM_ID),
 });

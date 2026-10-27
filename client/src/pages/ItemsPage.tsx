@@ -7,6 +7,7 @@ export function ItemsPage() {
   return (
     <ComingSoon
       title="¡Estamos armando TruequeUTN!"
+      showBadge={false}
       message="Ya podés publicar los materiales que ya no usás. Muy pronto vas a poder buscar los que necesitás y proponer un intercambio a otros estudiantes de la UTN."
     >
       <Link to="/publicar" className="btn-primary">

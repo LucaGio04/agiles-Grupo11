@@ -207,10 +207,16 @@ describe('GET /api/items/:id', () => {
     assert.equal(((await res.json()) as ErrorResponse).error.code, 'NOT_FOUND');
   });
 
-  it('con un id que no es numérico responde 400', async () => {
-    const res = await getItem('abc');
-    assert.equal(res.status, 400);
-  });
+  for (const id of ['abc', '7.5', '0', '-3']) {
+    it(`con el id inválido "${id}" responde 400 con el mensaje en español`, async () => {
+      const res = await getItem(id);
+      assert.equal(res.status, 400);
+      const { error } = (await res.json()) as ErrorResponse;
+      assert.deepEqual(error.details, [
+        { field: 'params.id', message: 'El id del ítem no es válido' },
+      ]);
+    });
+  }
 
   it('sin token responde 401', async () => {
     const res = await getItem('7', null);
