@@ -41,8 +41,22 @@ export const itemIdParamsSchema = z.object({
 export const ITEMS_PAGE_SIZE = 12;
 export const ITEMS_MAX_PAGE_SIZE = 50;
 
-const positiveInt = (message: string) =>
-  z.coerce.number({ error: message }).int(message).positive(message);
+// Tope de `page`: evita enteros fuera del rango seguro y que `(page - 1) * limit` desborde el `skip` de Prisma.
+export const ITEMS_MAX_PAGE = 100_000;
+
+// Entero positivo con tope y valor por defecto. Un valor vacío ("?page=") se toma como "no enviado",
+// igual que `query` y `category`. El tope va primero y corta (`abort`), así un número enorme
+// responde solo "demasiado grande" y no también "no es un entero".
+const boundedPositiveInt = (message: string, max: number, maxMessage: string, fallback: number) =>
+  z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce
+      .number({ error: message })
+      .max(max, { error: maxMessage, abort: true })
+      .int(message)
+      .positive(message)
+      .default(fallback)
+  );
 
 export const listItemsQuerySchema = z.object({
   query: z
@@ -56,10 +70,18 @@ export const listItemsQuerySchema = z.object({
     (value) => (value === '' ? undefined : value),
     z.enum(Categoria, { error: 'La categoría no es válida' }).optional()
   ),
-  page: positiveInt('La página tiene que ser un número mayor a 0').default(1),
-  limit: positiveInt('El límite tiene que ser un número mayor a 0')
-    .max(ITEMS_MAX_PAGE_SIZE, `El límite máximo es ${ITEMS_MAX_PAGE_SIZE}`)
-    .default(ITEMS_PAGE_SIZE),
+  page: boundedPositiveInt(
+    'La página tiene que ser un número mayor a 0',
+    ITEMS_MAX_PAGE,
+    `La página máxima es ${ITEMS_MAX_PAGE}`,
+    1
+  ),
+  limit: boundedPositiveInt(
+    'El límite tiene que ser un número mayor a 0',
+    ITEMS_MAX_PAGE_SIZE,
+    `El límite máximo es ${ITEMS_MAX_PAGE_SIZE}`,
+    ITEMS_PAGE_SIZE
+  ),
 });
 
 export type ListItemsQuery = z.infer<typeof listItemsQuerySchema>;

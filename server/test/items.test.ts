@@ -319,6 +319,33 @@ describe('GET /api/items', () => {
     );
   });
 
+  it('un page o limit vacío equivale a no enviarlo', async () => {
+    const res = await listItems('?page=&limit=');
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as { page: number };
+    assert.equal(body.page, 1);
+    assert.equal(lastQuery().skip, 0);
+    assert.equal(lastQuery().take, 12);
+  });
+
+  it('acepta la página máxima y rechaza las que la superan, sin llegar a la base', async () => {
+    assert.equal((await listItems('?page=100000')).status, 200);
+    findMany.mock.resetCalls();
+
+    for (const page of ['100001', '99999999999999999999', '9007199254740993']) {
+      const res = await listItems(`?page=${page}`);
+      assert.equal(res.status, 400, page);
+      const { error } = (await res.json()) as ErrorResponse;
+      // Un solo mensaje por campo, aunque el número tampoco sea un entero seguro.
+      assert.deepEqual(
+        error.details,
+        [{ field: 'query.page', message: 'La página máxima es 100000' }],
+        page
+      );
+    }
+    assert.equal(findMany.mock.callCount(), 0);
+  });
+
   it('sin resultados devuelve una lista vacía', async () => {
     const body = (await (await listItems('?query=inexistente')).json()) as Record<string, unknown>;
     assert.deepEqual(body, { data: [], page: 1, totalPages: 0, total: 0 });

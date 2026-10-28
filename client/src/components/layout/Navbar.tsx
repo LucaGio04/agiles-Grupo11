@@ -3,6 +3,9 @@ import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router
 import { useAuth } from '../../auth/useAuth.ts';
 import { Button } from '../ui/Button.tsx';
 
+// El server rechaza búsquedas de más de 100 caracteres.
+const MAX_QUERY_LENGTH = 100;
+
 export function Navbar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -11,12 +14,15 @@ export function Navbar() {
   const onHome = pathname === '/';
 
   // El buscador muestra la búsqueda de la URL del inicio (?q=), así queda al día si se limpia
-  // desde el listado o se vuelve atrás con el navegador.
+  // desde el listado o se vuelve atrás con el navegador. Se vuelve a sincronizar ante cualquier
+  // cambio de la URL (por ejemplo, tocar un chip de categoría), no solo de `q`: así el texto
+  // escrito sin enviar no queda desfasado de los resultados que se ven.
   const urlQuery = onHome ? (searchParams.get('q') ?? '') : '';
+  const urlKey = onHome ? searchParams.toString() : '';
   const [query, setQuery] = useState(urlQuery);
-  const [syncedQuery, setSyncedQuery] = useState(urlQuery);
-  if (urlQuery !== syncedQuery) {
-    setSyncedQuery(urlQuery);
+  const [syncedKey, setSyncedKey] = useState(urlKey);
+  if (urlKey !== syncedKey) {
+    setSyncedKey(urlKey);
     setQuery(urlQuery);
   }
   const [menuOpen, setMenuOpen] = useState(false);
@@ -80,6 +86,7 @@ export function Navbar() {
               type="search"
               name="q"
               placeholder="Buscar materiales..."
+              maxLength={MAX_QUERY_LENGTH}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Buscar materiales"

@@ -4,10 +4,13 @@ import { ItemCard } from '../components/items/ItemCard.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
-import { apiFetch } from '../lib/api.ts';
+import { ApiError, apiFetch } from '../lib/api.ts';
 import { CATEGORIAS, type Categoria, type ItemsPageResult } from '../lib/items.ts';
 
-const PAGE_SIZE = 12;
+// Topes que valida el server (query hasta 100 caracteres, page hasta 100000). Un link editado a mano
+// con valores mayores se recorta acá en vez de terminar en un 400.
+const MAX_QUERY_LENGTH = 100;
+const MAX_PAGE = 100_000;
 
 // Resultado de la carga para la búsqueda `forKey`. Mientras no coincide con la URL, se muestra el loader.
 type Result = { status: 'ok'; data: ItemsPageResult } | { status: 'error'; message: string };
@@ -21,12 +24,16 @@ function isCategoria(value: string | null): value is Categoria {
 // "atrás" del navegador y un link compartido muestran lo mismo.
 export function ItemsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const q = searchParams.get('q')?.trim() ?? '';
+  const q = (searchParams.get('q') ?? '').trim().slice(0, MAX_QUERY_LENGTH).trim();
   const rawCategoria = searchParams.get('categoria');
   const categoria = isCategoria(rawCategoria) ? rawCategoria : null;
-  const page = Math.max(1, Number.parseInt(searchParams.get('page') ?? '', 10) || 1);
+  const page = Math.min(
+    MAX_PAGE,
+    Math.max(1, Number.parseInt(searchParams.get('page') ?? '', 10) || 1)
+  );
 
-  const apiParams = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+  // No se manda `limit`: el tamaño de página lo decide el server.
+  const apiParams = new URLSearchParams({ page: String(page) });
   if (q) apiParams.set('query', q);
   if (categoria) apiParams.set('category', categoria);
   const key = apiParams.toString();
@@ -39,10 +46,14 @@ export function ItemsPage() {
     const setState = (r: Result) => !cancelled && setResult({ ...r, forKey: key });
     apiFetch<ItemsPageResult>(`/api/items?${key}`)
       .then((data) => setState({ status: 'ok', data }))
-      .catch(() =>
+      .catch((err: unknown) =>
         setState({
           status: 'error',
-          message: 'No pudimos cargar los materiales. Revisá tu conexión y probá de nuevo.',
+          // Un error del server (400, 500...) trae su propio mensaje; sin respuesta, se asume la conexión.
+          message:
+            err instanceof ApiError
+              ? err.message
+              : 'No pudimos cargar los materiales. Revisá tu conexión y probá de nuevo.',
         })
       );
     return () => {
@@ -59,6 +70,12 @@ export function ItemsPage() {
     }
     if (!('page' in changes)) next.delete('page');
     setSearchParams(next);
+  }
+
+  // Volver a pedir con la misma búsqueda: se descarta el error para que se vea el loader mientras carga.
+  function handleRetry() {
+    setResult(null);
+    setRetry((n) => n + 1);
   }
 
   function goToPage(nextPage: number) {
@@ -107,7 +124,7 @@ export function ItemsPage() {
       ) : result.status === 'error' ? (
         <div className="empty-state">
           <ErrorMessage message={result.message} />
-          <Button variant="secondary" onClick={() => setRetry((n) => n + 1)}>
+          <Button variant="secondary" onClick={handleRetry}>
             Reintentar
           </Button>
         </div>

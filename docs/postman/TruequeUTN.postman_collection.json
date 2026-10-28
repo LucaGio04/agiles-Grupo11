@@ -143,7 +143,7 @@
                 }
               ]
             },
-            "description": "Listado del inicio con búsqueda, filtro por categoría y paginación (HU-04). Requiere token.\n\nParámetros (todos opcionales):\n- query: texto a buscar en título, descripción y materia, sin distinguir mayúsculas.\n- category: LIBRO, APUNTE, CALCULADORA, INSTRUMENTAL u OTRO. Se combina con query; vacío = todas.\n- page: número de página (desde 1, por defecto 1).\n- limit: ítems por página (por defecto 12, máximo 50).\n\nReglas:\n- Solo ítems DISPONIBLES.\n- Nunca incluye los ítems del usuario logueado.\n- Más recientes primero.\n\nRespuestas:\n- 200 { data: Item[], page, totalPages, total }\n- 400 VALIDATION_ERROR — page, limit o category inválidos\n- 401 UNAUTHORIZED — sin token o token vencido"
+            "description": "Listado del inicio con búsqueda, filtro por categoría y paginación (HU-04). Requiere token.\n\nParámetros (todos opcionales):\n- query: texto a buscar en título, descripción y materia, sin distinguir mayúsculas (hasta 100 caracteres).\n- category: LIBRO, APUNTE, CALCULADORA, INSTRUMENTAL u OTRO. Se combina con query; vacío = todas.\n- page: número de página (desde 1, máximo 100000, por defecto 1). Vacío = por defecto.\n- limit: ítems por página (por defecto 12, máximo 50). Vacío = por defecto.\n\nReglas:\n- Solo ítems DISPONIBLES.\n- Nunca incluye los ítems del usuario logueado.\n- Más recientes primero.\n\nRespuestas:\n- 200 { data: Item[], page, totalPages, total }\n- 400 VALIDATION_ERROR — page, limit o category inválidos\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
           "response": [
             {
