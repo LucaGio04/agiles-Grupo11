@@ -17,7 +17,8 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w server",
-    "seed": "npm run seed -w server"
+    "seed": "npm run seed -w server",
+    "db:seed:demo": "npm run db:seed:demo -w server"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
