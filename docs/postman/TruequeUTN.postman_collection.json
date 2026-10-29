@@ -344,7 +344,7 @@
                 }
               ]
             },
-            "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- Visible en cualquier estado (por ejemplo RESERVADO).\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\""
+            "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- RESERVADO e INTERCAMBIADO se ven con cualquier usuario logueado.\n- Un ítem PAUSADO solo lo ve su dueño. Si lo pide otra persona, responde 404 con el mismo mensaje que si no existiera.\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\" (no existe, o está pausada y no sos el dueño)"
           },
           "response": [
             {
@@ -370,6 +370,107 @@
                 }
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Mis publicaciones",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me/items",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "description": "Ítems del usuario del token, del más reciente al más antiguo. Requiere token. El id no se manda en la URL.\n\nSin query devuelve todos los estados, pausados incluidos. `?status=` filtra por DISPONIBLE, RESERVADO, PAUSADO o INTERCAMBIADO. `?status=` vacío equivale a no filtrar.\n\nRespuestas:\n- 200 { data: Item[] }\n- 400 VALIDATION_ERROR — status no es un estado de ítem. details: \"El estado no es válido\"\n- 401 UNAUTHORIZED — sin token o token vencido"
+          },
+          "response": [
+            {
+              "name": "200 - Todos los míos",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 4,\n      \"titulo\": \"Demo: Calculadora pausada\",\n      \"descripcion\": \"Ítem de demo en estado pausado. Solo lo ve el dueño.\",\n      \"categoria\": \"CALCULADORA\",\n      \"estadoConservacion\": \"BUENO\",\n      \"materia\": \"Física I\",\n      \"fotoUrl\": null,\n      \"estado\": \"PAUSADO\",\n      \"ownerId\": 1,\n      \"createdAt\": \"2026-10-28T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-28T15:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mis publicaciones por estado",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me/items?status=PAUSADO",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "description": "Igual que Mis publicaciones, filtrando por status. Probá status=NO_EXISTE para ver el 400."
+          },
+          "response": [
+            {
+              "name": "200 - Solo pausados",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 4,\n      \"titulo\": \"Demo: Calculadora pausada\",\n      \"estado\": \"PAUSADO\",\n      \"ownerId\": 1\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 - Estado inválido",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"query.status\",\n        \"message\": \"El estado no es válido\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Propuestas",
+      "item": [
+        {
+          "name": "Mis propuestas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/proposals?status=CONCRETADA",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "description": "Propuestas en las que participa el usuario del token, de la más reciente a la más antigua. Requiere token.\n\n`status` es opcional: PENDIENTE, ACEPTADA, RECHAZADA, CANCELADA o CONCRETADA. Sin status devuelve todas las suyas. No incluye propuestas de terceros.\n\nCada elemento trae:\n- rol: proponente o receptor, según el token\n- persona: la otra persona (id y nombre, sin email)\n- itemSolicitado e itemOfrecido: id, titulo y estado\n- calificacionDada y calificacionRecibida: { puntaje, comentario } o null si falta\n\nRespuestas:\n- 200 { data }\n- 400 VALIDATION_ERROR — status no es un estado de propuesta\n- 401 UNAUTHORIZED — sin token o token vencido"
+          },
+          "response": [
+            {
+              "name": "200 - Intercambios concretados",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"demo:intercambio-con-calificacion\",\n      \"createdAt\": \"2026-10-20T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-28T15:00:00.000Z\",\n      \"rol\": \"proponente\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\" },\n      \"itemOfrecido\": { \"id\": 5, \"titulo\": \"Demo: Instrumental intercambiado\", \"estado\": \"INTERCAMBIADO\" },\n      \"calificacionDada\": { \"puntaje\": 5, \"comentario\": \"El intercambio fue claro y rápido.\" },\n      \"calificacionRecibida\": { \"puntaje\": 4, \"comentario\": \"El material estaba como lo describió.\" }\n    },\n    {\n      \"id\": 2,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"demo:intercambio-sin-calificacion\",\n      \"createdAt\": \"2026-10-21T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-27T15:00:00.000Z\",\n      \"rol\": \"receptor\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 2, \"titulo\": \"Demo: Análisis Matemático disponible\", \"estado\": \"DISPONIBLE\" },\n      \"itemOfrecido\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\" },\n      \"calificacionDada\": null,\n      \"calificacionRecibida\": null\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 - Estado inválido",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"query.status\",\n        \"message\": \"El estado de la propuesta no es válido\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
         }
