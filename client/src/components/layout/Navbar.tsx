@@ -1,18 +1,42 @@
 import { useState, type FormEvent } from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../../auth/useAuth.ts';
 import { Button } from '../ui/Button.tsx';
+
+// El server rechaza búsquedas de más de 100 caracteres.
+const MAX_QUERY_LENGTH = 100;
 
 export function Navbar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
+  const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
+  const onHome = pathname === '/';
+
+  // El buscador muestra la búsqueda de la URL del inicio (?q=), así queda al día si se limpia
+  // desde el listado o se vuelve atrás con el navegador. Se vuelve a sincronizar ante cualquier
+  // cambio de la URL (por ejemplo, tocar un chip de categoría), no solo de `q`: así el texto
+  // escrito sin enviar no queda desfasado de los resultados que se ven.
+  const urlQuery = onHome ? (searchParams.get('q') ?? '') : '';
+  const urlKey = onHome ? searchParams.toString() : '';
+  const [query, setQuery] = useState(urlQuery);
+  const [syncedKey, setSyncedKey] = useState(urlKey);
+  if (urlKey !== syncedKey) {
+    setSyncedKey(urlKey);
+    setQuery(urlQuery);
+  }
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Busca en el inicio. Si ya se estaba filtrando por categoría, el filtro se mantiene (HU-04).
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const params = new URLSearchParams();
+    const categoria = onHome ? searchParams.get('categoria') : null;
     const trimmed = query.trim();
-    navigate(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : '/');
+    if (trimmed) params.set('q', trimmed);
+    if (categoria) params.set('categoria', categoria);
+    const search = params.toString();
+    navigate(search ? `/?${search}` : '/');
     setMenuOpen(false);
   }
 
@@ -62,6 +86,7 @@ export function Navbar() {
               type="search"
               name="q"
               placeholder="Buscar materiales..."
+              maxLength={MAX_QUERY_LENGTH}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Buscar materiales"

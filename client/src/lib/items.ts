@@ -56,3 +56,11 @@ export type ItemOwner = {
 };
 
 export type ItemDetail = { item: Item; owner: ItemOwner };
+
+// Respuesta de GET /api/items (HU-04).
+export type ItemsPageResult = {
+  data: Item[];
+  page: number;
+  totalPages: number;
+  total: number;
+};

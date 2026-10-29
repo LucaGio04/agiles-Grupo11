@@ -36,3 +36,52 @@ const INVALID_ITEM_ID = 'El id del ítem no es válido';
 export const itemIdParamsSchema = z.object({
   id: z.coerce.number({ error: INVALID_ITEM_ID }).int(INVALID_ITEM_ID).positive(INVALID_ITEM_ID),
 });
+
+// Filtros del listado (HU-04). Todos opcionales; los valores vacíos se toman como "sin filtro".
+export const ITEMS_PAGE_SIZE = 12;
+export const ITEMS_MAX_PAGE_SIZE = 50;
+
+// Tope de `page`: evita enteros fuera del rango seguro y que `(page - 1) * limit` desborde el `skip` de Prisma.
+export const ITEMS_MAX_PAGE = 100_000;
+
+// Entero positivo con tope y valor por defecto. Un valor vacío ("?page=") se toma como "no enviado",
+// igual que `query` y `category`. El tope va primero y corta (`abort`), así un número enorme
+// responde solo "demasiado grande" y no también "no es un entero".
+const boundedPositiveInt = (message: string, max: number, maxMessage: string, fallback: number) =>
+  z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce
+      .number({ error: message })
+      .max(max, { error: maxMessage, abort: true })
+      .int(message)
+      .positive(message)
+      .default(fallback)
+  );
+
+export const listItemsQuerySchema = z.object({
+  query: z
+    .string({ error: 'La búsqueda no es válida' })
+    .trim()
+    .max(100, 'La búsqueda puede tener hasta 100 caracteres')
+    .optional()
+    .transform((value) => value || undefined),
+  // Un "?category=" vacío (el chip "Todas") equivale a no filtrar.
+  category: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.enum(Categoria, { error: 'La categoría no es válida' }).optional()
+  ),
+  page: boundedPositiveInt(
+    'La página tiene que ser un número mayor a 0',
+    ITEMS_MAX_PAGE,
+    `La página máxima es ${ITEMS_MAX_PAGE}`,
+    1
+  ),
+  limit: boundedPositiveInt(
+    'El límite tiene que ser un número mayor a 0',
+    ITEMS_MAX_PAGE_SIZE,
+    `El límite máximo es ${ITEMS_MAX_PAGE_SIZE}`,
+    ITEMS_PAGE_SIZE
+  ),
+});
+
+export type ListItemsQuery = z.infer<typeof listItemsQuerySchema>;

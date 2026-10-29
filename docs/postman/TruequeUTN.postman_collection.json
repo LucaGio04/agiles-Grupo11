@@ -129,6 +129,62 @@
       "name": "Items",
       "item": [
         {
+          "name": "Listar y buscar ítems",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/items?query=casio&category=CALCULADORA&page=1&limit=12",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Listado del inicio con búsqueda, filtro por categoría y paginación (HU-04). Requiere token.\n\nParámetros (todos opcionales):\n- query: texto a buscar en título, descripción y materia, sin distinguir mayúsculas (hasta 100 caracteres).\n- category: LIBRO, APUNTE, CALCULADORA, INSTRUMENTAL u OTRO. Se combina con query; vacío = todas.\n- page: número de página (desde 1, máximo 100000, por defecto 1). Vacío = por defecto.\n- limit: ítems por página (por defecto 12, máximo 50). Vacío = por defecto.\n\nReglas:\n- Solo ítems DISPONIBLES.\n- Nunca incluye los ítems del usuario logueado.\n- Más recientes primero.\n\nRespuestas:\n- 200 { data: Item[], page, totalPages, total }\n- 400 VALIDATION_ERROR — page, limit o category inválidos\n- 401 UNAUTHORIZED — sin token o token vencido"
+          },
+          "response": [
+            {
+              "name": "200 - Resultados",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 12,\n      \"titulo\": \"Calculadora científica Casio fx-82MS\",\n      \"descripcion\": null,\n      \"categoria\": \"CALCULADORA\",\n      \"estadoConservacion\": \"BUENO\",\n      \"materia\": \"Física I\",\n      \"fotoUrl\": null,\n      \"estado\": \"DISPONIBLE\",\n      \"ownerId\": 2,\n      \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n    }\n  ],\n  \"page\": 1,\n  \"totalPages\": 1,\n  \"total\": 1\n}"
+            },
+            {
+              "name": "200 - Sin resultados",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [],\n  \"page\": 1,\n  \"totalPages\": 0,\n  \"total\": 0\n}"
+            },
+            {
+              "name": "400 - Límite inválido",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"query.limit\",\n        \"message\": \"El límite máximo es 50\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "Publicar ítem",
           "request": {
             "method": "POST",
