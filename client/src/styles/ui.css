@@ -805,3 +805,102 @@
     padding: 0.7rem 0.85rem;
   }
 }
+
+/* Perfil: publicaciones por estado e historial de intercambios. */
+
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  min-width: 0;
+}
+
+.profile-header h1,
+.profile-section h2,
+.profile-item-heading h3,
+.profile-exchange-card h3,
+.profile-exchange-card p,
+.profile-item-heading a {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.profile-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+}
+
+.profile-tab {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background-color: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.profile-tab[aria-selected='true'] {
+  border-color: var(--ink);
+  background-color: var(--highlight);
+  color: #18212b;
+  font-weight: 700;
+}
+
+.profile-tab-count {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-item-card,
+.profile-exchange-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.profile-item-heading,
+.profile-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.profile-item-status {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.profile-section .empty-state {
+  margin: 0;
+}
