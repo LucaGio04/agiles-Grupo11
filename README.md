@@ -24,7 +24,8 @@ Plataforma web académica para que estudiantes de la UTN intercambien materiales
 /
 ├── client/             # Frontend React + Vite
 ├── server/             # Backend Express + TypeScript
-│   └── prisma/         # Schema, migraciones y seed de la base de datos
+│   ├── prisma/         # Schema, migraciones y seed de la base de datos
+│   └── uploads/        # Fotos subidas por los usuarios (se crea sola, no se versiona)
 ├── docs/               # Documentación (diagrama entidad-relación, colección de Postman)
 ├── docker-compose.yml  # PostgreSQL para desarrollo
 ├── package.json        # Monorepo (npm workspaces)
@@ -51,13 +52,15 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-| Variable       | Paquete | Descripción                                                                    |
-| -------------- | ------- | ------------------------------------------------------------------------------ |
-| `PORT`         | server  | Puerto del backend (default: 3001)                                             |
-| `CLIENT_URL`   | server  | URL del frontend para CORS                                                     |
-| `DATABASE_URL` | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)  |
-| `JWT_SECRET`   | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio |
-| `VITE_API_URL` | client  | URL base del backend                                                           |
+| Variable         | Paquete | Descripción                                                                    |
+| ---------------- | ------- | ------------------------------------------------------------------------------ |
+| `PORT`           | server  | Puerto del backend (default: 3001)                                             |
+| `CLIENT_URL`     | server  | URL del frontend para CORS                                                     |
+| `DATABASE_URL`   | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)  |
+| `JWT_SECRET`     | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio |
+| `UPLOADS_DIR`    | server  | (Opcional) Carpeta de las fotos de los ítems. Por defecto `server/uploads`     |
+| `API_PUBLIC_URL` | server  | (Opcional) URL pública del backend para armar el link de las fotos             |
+| `VITE_API_URL`   | client  | URL base del backend                                                           |
 
 ### 3. Base de datos
 
@@ -124,6 +127,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | GET    | `/api/items`         | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04) |
 | POST   | `/api/items`         | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)         |
 | GET    | `/api/items/:id`     | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05)         |
+| POST   | `/api/uploads`       | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)      |
 
 ## Frontend: rutas y sesión
 

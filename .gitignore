@@ -5,5 +5,8 @@ client/dist/
 .env.*
 !.env.example
 
+# Fotos subidas por los usuarios (HU-13)
+server/uploads/
+
 # Cliente de Prisma generado (se regenera con `npm install` / `npx prisma generate`)
 server/src/generated/
