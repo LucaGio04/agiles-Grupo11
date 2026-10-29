@@ -26,6 +26,8 @@ export type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  // Reemplaza los datos del usuario logueado, por ejemplo después de editar el perfil (HU-11).
+  updateUser: (user: User) => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
