@@ -209,7 +209,7 @@
               "mode": "raw",
               "raw": "{\n  \"titulo\": \"Calculadora Casio fx-82\",\n  \"categoria\": \"CALCULADORA\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Física I\",\n  \"descripcion\": \"Funciona perfecto, con tapa\",\n  \"fotoUrl\": \"https://example.com/casio.jpg\"\n}"
             },
-            "description": "Publica un material para intercambiar (HU-03). Requiere token.\n\nBody: { titulo, categoria, estadoConservacion, descripcion?, materia?, fotoUrl? }.\n- titulo: 3 a 80 caracteres. descripcion: hasta 500.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- fotoUrl: URL http/https (la subida de archivos llega con HU-13).\n- El dueño es siempre el usuario del token: un ownerId o estado en el body se ignoran. El ítem queda DISPONIBLE.\n\nRespuestas:\n- 201 { item }\n- 400 VALIDATION_ERROR — falta título/categoría/estado o algún campo es inválido\n- 401 UNAUTHORIZED — sin token o token vencido"
+            "description": "Publica un material para intercambiar (HU-03). Requiere token.\n\nBody: { titulo, categoria, estadoConservacion, descripcion?, materia?, fotoUrl? }.\n- titulo: 3 a 80 caracteres. descripcion: hasta 500.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- fotoUrl: URL http/https. Para subir un archivo, usá primero «Subir foto» (HU-13) y pegá acá la url que devuelve.\n- El dueño es siempre el usuario del token: un ownerId o estado en el body se ignoran. El ítem queda DISPONIBLE.\n\nRespuestas:\n- 201 { item }\n- 400 VALIDATION_ERROR — falta título/categoría/estado o algún campo es inválido\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
           "response": [
             {
@@ -235,6 +235,85 @@
                 }
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.titulo\",\n        \"message\": \"Ingresá un título\"\n      },\n      {\n        \"field\": \"body.categoria\",\n        \"message\": \"Elegí una categoría\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Subir foto",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/uploads",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Imagen JPG, PNG o WebP de hasta 5 MB"
+                }
+              ]
+            },
+            "description": "Sube la foto de un ítem (HU-13). Requiere token. Se usa antes de publicar: la url que devuelve va en el campo fotoUrl de «Publicar ítem».\n\nBody: multipart/form-data con un único archivo en el campo file.\n- Formatos: JPG, PNG o WebP (se comprueba el contenido real del archivo, no solo la extensión).\n- Tamaño máximo: 5 MB.\n- El servidor elige el nombre del archivo; el nombre original se ignora.\n- La imagen se sirve públicamente en la url devuelta (GET /uploads/<archivo>).\n\nRespuestas:\n- 201 { url }\n- 400 FILE_REQUIRED — no se envió ningún archivo\n- 400 INVALID_FILE_TYPE — no es una imagen JPG, PNG o WebP\n- 400 BAD_REQUEST — campo con otro nombre, más de un archivo o formulario ilegible\n- 401 UNAUTHORIZED — sin token o token vencido\n- 413 FILE_TOO_LARGE — la imagen supera los 5 MB"
+          },
+          "response": [
+            {
+              "name": "201 - Foto subida",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"url\": \"http://localhost:3001/uploads/3f6c1c1e-52b7-4d3e-9f0a-8c1d2b7e4a90.jpg\"\n}"
+            },
+            {
+              "name": "400 - Formato inválido",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"INVALID_FILE_TYPE\",\n    \"message\": \"El archivo tiene que ser una imagen JPG, PNG o WebP\"\n  }\n}"
+            },
+            {
+              "name": "413 - Imagen muy pesada",
+              "status": "Payload Too Large",
+              "code": 413,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"FILE_TOO_LARGE\",\n    \"message\": \"La imagen supera el tamaño máximo de 5 MB\"\n  }\n}"
             },
             {
               "name": "401 - Sin token",

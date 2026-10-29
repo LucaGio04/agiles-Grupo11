@@ -25,6 +25,7 @@ export class ApiError extends Error {
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  // Un objeto se envía como JSON; un FormData (subida de archivos) se envía tal cual.
   body?: unknown;
   token?: string | null;
 };
@@ -42,7 +43,9 @@ export async function apiFetch<T>(
   { method = 'GET', body, token }: RequestOptions = {}
 ) {
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const isFormData = body instanceof FormData;
+  // Con FormData el navegador arma solo el Content-Type (multipart con su boundary): no hay que pisarlo.
+  if (body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
 
   const authToken = token !== undefined ? token : tokenStorage.get();
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
@@ -50,7 +53,7 @@ export async function apiFetch<T>(
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 
   const data = await res.json().catch(() => null);
