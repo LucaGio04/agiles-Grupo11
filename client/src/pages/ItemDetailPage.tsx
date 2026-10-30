@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../auth/useAuth.ts';
 import { ItemPhoto } from '../components/items/ItemPhoto.tsx';
 import { Button } from '../components/ui/Button.tsx';
@@ -42,6 +42,7 @@ function Reputacion({ reputacion }: { reputacion: ItemOwner['reputacion'] }) {
 export function ItemDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const flash = (useLocation().state as { flash?: string } | null)?.flash;
   const [result, setResult] = useState<(Result & { forId: string }) | null>(null);
 
@@ -155,8 +156,17 @@ export function ItemDetailPage() {
         <div className="item-detail-actions">
           {isMine ? (
             <>
-              {/* Editar y eliminar llegan con HU-14 y HU-15. */}
-              <Button variant="secondary" disabled title="Próximamente">
+              {/* Editar llega con HU-14. Eliminar llega con HU-15. */}
+              <Button
+                variant="secondary"
+                onClick={() => navigate(`/items/${item.id}/editar`)}
+                disabled={item.estado === 'INTERCAMBIADO'}
+                title={
+                  item.estado === 'INTERCAMBIADO'
+                    ? 'No se puede editar un ítem intercambiado'
+                    : undefined
+                }
+              >
                 Editar
               </Button>
               <Button variant="danger" disabled title="Próximamente">
@@ -174,10 +184,12 @@ export function ItemDetailPage() {
               propuestas.
             </p>
           )}
-          {(isMine || disponible) && (
+          {isMine && item.estado !== 'INTERCAMBIADO' && (
+            <span className="field-hint">Eliminar va a estar disponible muy pronto.</span>
+          )}
+          {!isMine && disponible && (
             <span className="field-hint">
-              {isMine ? 'Editar y eliminar' : 'Las propuestas de intercambio'} van a estar
-              disponibles muy pronto.
+              Las propuestas de intercambio van a estar disponibles muy pronto.
             </span>
           )}
         </div>

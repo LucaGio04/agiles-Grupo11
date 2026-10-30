@@ -41,6 +41,16 @@ export type CreateItemData = {
   fotoUrl?: string;
 };
 
+export type UpdateItemData = {
+  titulo?: string;
+  categoria?: Categoria;
+  estadoConservacion?: EstadoConservacion;
+  descripcion?: string | null;
+  materia?: string | null;
+  fotoUrl?: string | null;
+  estado?: 'DISPONIBLE' | 'PAUSADO';
+};
+
 export const ESTADOS_ITEM: Record<EstadoItem, string> = {
   DISPONIBLE: 'Disponible',
   RESERVADO: 'Reservado',
