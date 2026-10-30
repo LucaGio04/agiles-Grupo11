@@ -20,9 +20,7 @@ const TABS: { estado: EstadoItem; label: string }[] = [
 ];
 
 type SectionState<T> =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ok'; data: T };
+  { status: 'loading' } | { status: 'error'; message: string } | { status: 'ok'; data: T };
 
 function messageFrom(err: unknown, fallback: string) {
   return err instanceof ApiError ? err.message : fallback;
