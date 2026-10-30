@@ -1,379 +1,506 @@
-{
-  "info": {
-    "name": "TruequeUTN API",
-    "description": "Endpoints del backend de TruequeUTN. Importar en Postman (File → Import). La variable baseUrl apunta al server local; el request de login guarda el token en la variable token para usarlo en los endpoints protegidos.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3001/api" },
-    { "key": "token", "value": "" }
-  ],
-  "item": [
-    {
-      "name": "Health",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/health",
-        "description": "Verifica que el server esté levantado. Responde 200 { status: \"ok\" }."
-      }
-    },
-    {
-      "name": "Auth",
-      "item": [
-        {
-          "name": "Registro",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/auth/register",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Lucas Romero\",\n  \"email\": \"lucas.romero@utn.edu.ar\",\n  \"password\": \"Trueque1234\",\n  \"carrera\": \"Ingeniería en Sistemas\"\n}"
-            },
-            "description": "Crea una cuenta institucional (HU-01).\n\nBody: { nombre, email, password, carrera }.\n- Email normalizado a minúsculas y restringido al dominio institucional.\n- Contraseña hasheada con bcrypt (mínimo 10 rondas).\n\nRespuestas:\n- 201 { user: { id, nombre, email, carrera }, token } — creado y sesión iniciada\n- 400 VALIDATION_ERROR — formato inválido, dominio no institucional o contraseña menor a 8 caracteres\n- 409 CONFLICT — \"Ese email ya tiene una cuenta\""
-          },
-          "response": [
-            {
-              "name": "201 - Cuenta creada",
-              "status": "Created",
-              "code": 201,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"user\": {\n    \"id\": 6,\n    \"nombre\": \"Lucas Romero\",\n    \"email\": \"lucas.romero@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\"\n  },\n  \"token\": \"<jwt>\"\n}"
-            },
-            {
-              "name": "400 - Email no institucional",
-              "status": "Bad Request",
-              "code": 400,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.email\",\n        \"message\": \"Usá tu mail institucional\"\n      }\n    ]\n  }\n}"
-            },
-            {
-              "name": "409 - Email duplicado",
-              "status": "Conflict",
-              "code": 409,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Ese email ya tiene una cuenta\"\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/auth/login",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"tomas@utn.edu.ar\",\n  \"password\": \"Trueque123\"\n}"
-            },
-            "description": "Inicia sesión (HU-02).\n\nBody: { email, password }. El email se normaliza a minúsculas.\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera }, token } — JWT que expira en 24 h\n- 400 VALIDATION_ERROR — falta un campo o el email no tiene formato válido\n- 401 INVALID_CREDENTIALS — \"Email o contraseña incorrectos\" (mismo mensaje si el email no existe o la contraseña es incorrecta)"
-          },
-          "response": [
-            {
-              "name": "200 - Credenciales correctas",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"email\": \"tomas@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\"\n  },\n  \"token\": \"<jwt>\"\n}"
-            },
-            {
-              "name": "401 - Credenciales incorrectas",
-              "status": "Unauthorized",
-              "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"error\": {\n    \"code\": \"INVALID_CREDENTIALS\",\n    \"message\": \"Email o contraseña incorrectos\"\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Usuario actual",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/auth/me",
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-            },
-            "description": "Devuelve el usuario del token. El front lo usa al recargar la página para restaurar la sesión.\n\nHeader: Authorization: Bearer <token> (se completa solo después de correr Login).\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera } }\n- 401 UNAUTHORIZED — sin token, token vencido o adulterado, o el usuario ya no existe"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Items",
-      "item": [
-        {
-          "name": "Listar y buscar ítems",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/items?query=casio&category=CALCULADORA&page=1&limit=12",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "description": "Listado del inicio con búsqueda, filtro por categoría y paginación (HU-04). Requiere token.\n\nParámetros (todos opcionales):\n- query: texto a buscar en título, descripción y materia, sin distinguir mayúsculas (hasta 100 caracteres).\n- category: LIBRO, APUNTE, CALCULADORA, INSTRUMENTAL u OTRO. Se combina con query; vacío = todas.\n- page: número de página (desde 1, máximo 100000, por defecto 1). Vacío = por defecto.\n- limit: ítems por página (por defecto 12, máximo 50). Vacío = por defecto.\n\nReglas:\n- Solo ítems DISPONIBLES.\n- Nunca incluye los ítems del usuario logueado.\n- Más recientes primero.\n\nRespuestas:\n- 200 { data: Item[], page, totalPages, total }\n- 400 VALIDATION_ERROR — page, limit o category inválidos\n- 401 UNAUTHORIZED — sin token o token vencido"
-          },
-          "response": [
-            {
-              "name": "200 - Resultados",
-              "status": "OK",
-              "code": 200,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"data\": [\n    {\n      \"id\": 12,\n      \"titulo\": \"Calculadora científica Casio fx-82MS\",\n      \"descripcion\": null,\n      \"categoria\": \"CALCULADORA\",\n      \"estadoConservacion\": \"BUENO\",\n      \"materia\": \"Física I\",\n      \"fotoUrl\": null,\n      \"estado\": \"DISPONIBLE\",\n      \"ownerId\": 2,\n      \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n    }\n  ],\n  \"page\": 1,\n  \"totalPages\": 1,\n  \"total\": 1\n}"
-            },
-            {
-              "name": "200 - Sin resultados",
-              "status": "OK",
-              "code": 200,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"data\": [],\n  \"page\": 1,\n  \"totalPages\": 0,\n  \"total\": 0\n}"
-            },
-            {
-              "name": "400 - Límite inválido",
-              "status": "Bad Request",
-              "code": 400,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"query.limit\",\n        \"message\": \"El límite máximo es 50\"\n      }\n    ]\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Publicar ítem",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/items",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Calculadora Casio fx-82\",\n  \"categoria\": \"CALCULADORA\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Física I\",\n  \"descripcion\": \"Funciona perfecto, con tapa\",\n  \"fotoUrl\": \"https://example.com/casio.jpg\"\n}"
-            },
-            "description": "Publica un material para intercambiar (HU-03). Requiere token.\n\nBody: { titulo, categoria, estadoConservacion, descripcion?, materia?, fotoUrl? }.\n- titulo: 3 a 80 caracteres. descripcion: hasta 500.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- fotoUrl: URL http/https. Para subir un archivo, usá primero «Subir foto» (HU-13) y pegá acá la url que devuelve.\n- El dueño es siempre el usuario del token: un ownerId o estado en el body se ignoran. El ítem queda DISPONIBLE.\n\nRespuestas:\n- 201 { item }\n- 400 VALIDATION_ERROR — falta título/categoría/estado o algún campo es inválido\n- 401 UNAUTHORIZED — sin token o token vencido"
-          },
-          "response": [
-            {
-              "name": "201 - Ítem publicado",
-              "status": "Created",
-              "code": 201,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"item\": {\n    \"id\": 7,\n    \"titulo\": \"Calculadora Casio fx-82\",\n    \"descripcion\": \"Funciona perfecto, con tapa\",\n    \"categoria\": \"CALCULADORA\",\n    \"estadoConservacion\": \"BUENO\",\n    \"materia\": \"Física I\",\n    \"fotoUrl\": \"https://example.com/casio.jpg\",\n    \"estado\": \"DISPONIBLE\",\n    \"ownerId\": 1,\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n    \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n  }\n}"
-            },
-            {
-              "name": "400 - Faltan título y categoría",
-              "status": "Bad Request",
-              "code": 400,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.titulo\",\n        \"message\": \"Ingresá un título\"\n      },\n      {\n        \"field\": \"body.categoria\",\n        \"message\": \"Elegí una categoría\"\n      }\n    ]\n  }\n}"
-            },
-            {
-              "name": "401 - Sin token",
-              "status": "Unauthorized",
-              "code": 401,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Subir foto",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/uploads",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": [],
-                  "description": "Imagen JPG, PNG o WebP de hasta 5 MB"
-                }
-              ]
-            },
-            "description": "Sube la foto de un ítem (HU-13). Requiere token. Se usa antes de publicar: la url que devuelve va en el campo fotoUrl de «Publicar ítem».\n\nBody: multipart/form-data con un único archivo en el campo file.\n- Formatos: JPG, PNG o WebP (se comprueba el contenido real del archivo, no solo la extensión).\n- Tamaño máximo: 5 MB.\n- El servidor elige el nombre del archivo; el nombre original se ignora.\n- La imagen se sirve públicamente en la url devuelta (GET /uploads/<archivo>).\n\nRespuestas:\n- 201 { url }\n- 400 FILE_REQUIRED — no se envió ningún archivo\n- 400 INVALID_FILE_TYPE — no es una imagen JPG, PNG o WebP\n- 400 BAD_REQUEST — campo con otro nombre, más de un archivo o formulario ilegible\n- 401 UNAUTHORIZED — sin token o token vencido\n- 413 FILE_TOO_LARGE — la imagen supera los 5 MB"
-          },
-          "response": [
-            {
-              "name": "201 - Foto subida",
-              "status": "Created",
-              "code": 201,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"url\": \"http://localhost:3001/uploads/3f6c1c1e-52b7-4d3e-9f0a-8c1d2b7e4a90.jpg\"\n}"
-            },
-            {
-              "name": "400 - Formato inválido",
-              "status": "Bad Request",
-              "code": 400,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"error\": {\n    \"code\": \"INVALID_FILE_TYPE\",\n    \"message\": \"El archivo tiene que ser una imagen JPG, PNG o WebP\"\n  }\n}"
-            },
-            {
-              "name": "413 - Imagen muy pesada",
-              "status": "Payload Too Large",
-              "code": 413,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"error\": {\n    \"code\": \"FILE_TOO_LARGE\",\n    \"message\": \"La imagen supera el tamaño máximo de 5 MB\"\n  }\n}"
-            },
-            {
-              "name": "401 - Sin token",
-              "status": "Unauthorized",
-              "code": 401,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Detalle de ítem",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/items/7",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- Visible en cualquier estado (por ejemplo RESERVADO).\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\""
-          },
-          "response": [
-            {
-              "name": "200 - Detalle",
-              "status": "OK",
-              "code": 200,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"item\": {\n    \"id\": 7,\n    \"titulo\": \"Calculadora Casio fx-82\",\n    \"descripcion\": \"Funciona perfecto, con tapa\",\n    \"categoria\": \"CALCULADORA\",\n    \"estadoConservacion\": \"BUENO\",\n    \"materia\": \"Física I\",\n    \"fotoUrl\": null,\n    \"estado\": \"DISPONIBLE\",\n    \"ownerId\": 1,\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n    \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n  },\n  \"owner\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"carrera\": \"Ingeniería en Sistemas\",\n    \"reputacion\": {\n      \"promedio\": 4.5,\n      \"cantidad\": 2\n    }\n  }\n}"
-            },
-            {
-              "name": "404 - No existe",
-              "status": "Not Found",
-              "code": 404,
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}"
-            }
-          ]
-        }
-      ]
-    }
-  ]
+﻿{
+    "info":  {
+                 "name":  "TruequeUTN API",
+                 "description":  "Endpoints del backend de TruequeUTN. Importar en Postman (File â†’ Import). La variable baseUrl apunta al server local; el request de login guarda el token en la variable token para usarlo en los endpoints protegidos.",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "variable":  [
+                     {
+                         "key":  "baseUrl",
+                         "value":  "http://localhost:3001/api"
+                     },
+                     {
+                         "key":  "token",
+                         "value":  ""
+                     }
+                 ],
+    "item":  [
+                 {
+                     "name":  "Health",
+                     "request":  {
+                                     "method":  "GET",
+                                     "url":  "{{baseUrl}}/health",
+                                     "description":  "Verifica que el server estÃ© levantado. Responde 200 { status: \"ok\" }."
+                                 }
+                 },
+                 {
+                     "name":  "Auth",
+                     "item":  [
+                                  {
+                                      "name":  "Registro",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "if (pm.response.code === 201) {",
+                                                                                    "  pm.collectionVariables.set(\u0027token\u0027, pm.response.json().token);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  "{{baseUrl}}/auth/register",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nombre\": \"Lucas Romero\",\n  \"email\": \"lucas.romero@utn.edu.ar\",\n  \"password\": \"Trueque1234\",\n  \"carrera\": \"IngenierÃ­a en Sistemas\"\n}"
+                                                               },
+                                                      "description":  "Crea una cuenta institucional (HU-01).\n\nBody: { nombre, email, password, carrera }.\n- Email normalizado a minÃºsculas y restringido al dominio institucional.\n- ContraseÃ±a hasheada con bcrypt (mÃ­nimo 10 rondas).\n\nRespuestas:\n- 201 { user: { id, nombre, email, carrera }, token } â€” creado y sesiÃ³n iniciada\n- 400 VALIDATION_ERROR â€” formato invÃ¡lido, dominio no institucional o contraseÃ±a menor a 8 caracteres\n- 409 CONFLICT â€” \"Ese email ya tiene una cuenta\""
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "201 - Cuenta creada",
+                                                           "status":  "Created",
+                                                           "code":  201,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"user\": {\n    \"id\": 6,\n    \"nombre\": \"Lucas Romero\",\n    \"email\": \"lucas.romero@utn.edu.ar\",\n    \"carrera\": \"IngenierÃ­a en Sistemas\"\n  },\n  \"token\": \"\u003cjwt\u003e\"\n}"
+                                                       },
+                                                       {
+                                                           "name":  "400 - Email no institucional",
+                                                           "status":  "Bad Request",
+                                                           "code":  400,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son vÃ¡lidos\",\n    \"details\": [\n      {\n        \"field\": \"body.email\",\n        \"message\": \"UsÃ¡ tu mail institucional\"\n      }\n    ]\n  }\n}"
+                                                       },
+                                                       {
+                                                           "name":  "409 - Email duplicado",
+                                                           "status":  "Conflict",
+                                                           "code":  409,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Ese email ya tiene una cuenta\"\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Login",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "if (pm.response.code === 200) {",
+                                                                                    "  pm.collectionVariables.set(\u0027token\u0027, pm.response.json().token);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  "{{baseUrl}}/auth/login",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"tomas@utn.edu.ar\",\n  \"password\": \"Trueque123\"\n}"
+                                                               },
+                                                      "description":  "Inicia sesiÃ³n (HU-02).\n\nBody: { email, password }. El email se normaliza a minÃºsculas.\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera }, token } â€” JWT que expira en 24 h\n- 400 VALIDATION_ERROR â€” falta un campo o el email no tiene formato vÃ¡lido\n- 401 INVALID_CREDENTIALS â€” \"Email o contraseÃ±a incorrectos\" (mismo mensaje si el email no existe o la contraseÃ±a es incorrecta)"
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "200 - Credenciales correctas",
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"user\": {\n    \"id\": 1,\n    \"nombre\": \"TomÃ¡s Bellizzi\",\n    \"email\": \"tomas@utn.edu.ar\",\n    \"carrera\": \"IngenierÃ­a en Sistemas\"\n  },\n  \"token\": \"\u003cjwt\u003e\"\n}"
+                                                       },
+                                                       {
+                                                           "name":  "401 - Credenciales incorrectas",
+                                                           "status":  "Unauthorized",
+                                                           "code":  401,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"INVALID_CREDENTIALS\",\n    \"message\": \"Email o contraseÃ±a incorrectos\"\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Usuario actual",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{baseUrl}}/auth/me",
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{token}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "description":  "Devuelve el usuario del token. El front lo usa al recargar la pÃ¡gina para restaurar la sesiÃ³n.\n\nHeader: Authorization: Bearer \u003ctoken\u003e (se completa solo despuÃ©s de correr Login).\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera } }\n- 401 UNAUTHORIZED â€” sin token, token vencido o adulterado, o el usuario ya no existe"
+                                                  }
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Items",
+                     "item":  [
+                                  {
+                                      "name":  "Listar y buscar Ã­tems",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{baseUrl}}/items?query=casio\u0026category=CALCULADORA\u0026page=1\u0026limit=12",
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{token}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "description":  "Listado del inicio con bÃºsqueda, filtro por categorÃ­a y paginaciÃ³n (HU-04). Requiere token.\n\nParÃ¡metros (todos opcionales):\n- query: texto a buscar en tÃ­tulo, descripciÃ³n y materia, sin distinguir mayÃºsculas (hasta 100 caracteres).\n- category: LIBRO, APUNTE, CALCULADORA, INSTRUMENTAL u OTRO. Se combina con query; vacÃ­o = todas.\n- page: nÃºmero de pÃ¡gina (desde 1, mÃ¡ximo 100000, por defecto 1). VacÃ­o = por defecto.\n- limit: Ã­tems por pÃ¡gina (por defecto 12, mÃ¡ximo 50). VacÃ­o = por defecto.\n\nReglas:\n- Solo Ã­tems DISPONIBLES.\n- Nunca incluye los Ã­tems del usuario logueado.\n- MÃ¡s recientes primero.\n\nRespuestas:\n- 200 { data: Item[], page, totalPages, total }\n- 400 VALIDATION_ERROR â€” page, limit o category invÃ¡lidos\n- 401 UNAUTHORIZED â€” sin token o token vencido"
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "200 - Resultados",
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"data\": [\n    {\n      \"id\": 12,\n      \"titulo\": \"Calculadora cientÃ­fica Casio fx-82MS\",\n      \"descripcion\": null,\n      \"categoria\": \"CALCULADORA\",\n      \"estadoConservacion\": \"BUENO\",\n      \"materia\": \"FÃ­sica I\",\n      \"fotoUrl\": null,\n      \"estado\": \"DISPONIBLE\",\n      \"ownerId\": 2,\n      \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n    }\n  ],\n  \"page\": 1,\n  \"totalPages\": 1,\n  \"total\": 1\n}"
+                                                       },
+                                                       {
+                                                           "name":  "200 - Sin resultados",
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"data\": [],\n  \"page\": 1,\n  \"totalPages\": 0,\n  \"total\": 0\n}"
+                                                       },
+                                                       {
+                                                           "name":  "400 - LÃ­mite invÃ¡lido",
+                                                           "status":  "Bad Request",
+                                                           "code":  400,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son vÃ¡lidos\",\n    \"details\": [\n      {\n        \"field\": \"query.limit\",\n        \"message\": \"El lÃ­mite mÃ¡ximo es 50\"\n      }\n    ]\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Publicar Ã­tem",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  "{{baseUrl}}/items",
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{token}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"titulo\": \"Calculadora Casio fx-82\",\n  \"categoria\": \"CALCULADORA\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"FÃ­sica I\",\n  \"descripcion\": \"Funciona perfecto, con tapa\",\n  \"fotoUrl\": \"https://example.com/casio.jpg\"\n}"
+                                                               },
+                                                      "description":  "Publica un material para intercambiar (HU-03). Requiere token.\n\nBody: { titulo, categoria, estadoConservacion, descripcion?, materia?, fotoUrl? }.\n- titulo: 3 a 80 caracteres. descripcion: hasta 500.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- fotoUrl: URL http/https. Para subir un archivo, usÃ¡ primero Â«Subir fotoÂ» (HU-13) y pegÃ¡ acÃ¡ la url que devuelve.\n- El dueÃ±o es siempre el usuario del token: un ownerId o estado en el body se ignoran. El Ã­tem queda DISPONIBLE.\n\nRespuestas:\n- 201 { item }\n- 400 VALIDATION_ERROR â€” falta tÃ­tulo/categorÃ­a/estado o algÃºn campo es invÃ¡lido\n- 401 UNAUTHORIZED â€” sin token o token vencido"
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "201 - Ãtem publicado",
+                                                           "status":  "Created",
+                                                           "code":  201,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"item\": {\n    \"id\": 7,\n    \"titulo\": \"Calculadora Casio fx-82\",\n    \"descripcion\": \"Funciona perfecto, con tapa\",\n    \"categoria\": \"CALCULADORA\",\n    \"estadoConservacion\": \"BUENO\",\n    \"materia\": \"FÃ­sica I\",\n    \"fotoUrl\": \"https://example.com/casio.jpg\",\n    \"estado\": \"DISPONIBLE\",\n    \"ownerId\": 1,\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n    \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n  }\n}"
+                                                       },
+                                                       {
+                                                           "name":  "400 - Faltan tÃ­tulo y categorÃ­a",
+                                                           "status":  "Bad Request",
+                                                           "code":  400,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son vÃ¡lidos\",\n    \"details\": [\n      {\n        \"field\": \"body.titulo\",\n        \"message\": \"IngresÃ¡ un tÃ­tulo\"\n      },\n      {\n        \"field\": \"body.categoria\",\n        \"message\": \"ElegÃ­ una categorÃ­a\"\n      }\n    ]\n  }\n}"
+                                                       },
+                                                       {
+                                                           "name":  "401 - Sin token",
+                                                           "status":  "Unauthorized",
+                                                           "code":  401,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticaciÃ³n\"\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Subir foto",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "url":  "{{baseUrl}}/uploads",
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{token}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "body":  {
+                                                                   "mode":  "formdata",
+                                                                   "formdata":  [
+                                                                                    {
+                                                                                        "key":  "file",
+                                                                                        "type":  "file",
+                                                                                        "src":  [
+
+                                                                                                ],
+                                                                                        "description":  "Imagen JPG, PNG o WebP de hasta 5 MB"
+                                                                                    }
+                                                                                ]
+                                                               },
+                                                      "description":  "Sube la foto de un Ã­tem (HU-13). Requiere token. Se usa antes de publicar: la url que devuelve va en el campo fotoUrl de Â«Publicar Ã­temÂ».\n\nBody: multipart/form-data con un Ãºnico archivo en el campo file.\n- Formatos: JPG, PNG o WebP (se comprueba el contenido real del archivo, no solo la extensiÃ³n).\n- TamaÃ±o mÃ¡ximo: 5 MB.\n- El servidor elige el nombre del archivo; el nombre original se ignora.\n- La imagen se sirve pÃºblicamente en la url devuelta (GET /uploads/\u003carchivo\u003e).\n\nRespuestas:\n- 201 { url }\n- 400 FILE_REQUIRED â€” no se enviÃ³ ningÃºn archivo\n- 400 INVALID_FILE_TYPE â€” no es una imagen JPG, PNG o WebP\n- 400 BAD_REQUEST â€” campo con otro nombre, mÃ¡s de un archivo o formulario ilegible\n- 401 UNAUTHORIZED â€” sin token o token vencido\n- 413 FILE_TOO_LARGE â€” la imagen supera los 5 MB"
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "201 - Foto subida",
+                                                           "status":  "Created",
+                                                           "code":  201,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"url\": \"http://localhost:3001/uploads/3f6c1c1e-52b7-4d3e-9f0a-8c1d2b7e4a90.jpg\"\n}"
+                                                       },
+                                                       {
+                                                           "name":  "400 - Formato invÃ¡lido",
+                                                           "status":  "Bad Request",
+                                                           "code":  400,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"INVALID_FILE_TYPE\",\n    \"message\": \"El archivo tiene que ser una imagen JPG, PNG o WebP\"\n  }\n}"
+                                                       },
+                                                       {
+                                                           "name":  "413 - Imagen muy pesada",
+                                                           "status":  "Payload Too Large",
+                                                           "code":  413,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"FILE_TOO_LARGE\",\n    \"message\": \"La imagen supera el tamaÃ±o mÃ¡ximo de 5 MB\"\n  }\n}"
+                                                       },
+                                                       {
+                                                           "name":  "401 - Sin token",
+                                                           "status":  "Unauthorized",
+                                                           "code":  401,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticaciÃ³n\"\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Detalle de Ã­tem",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "url":  "{{baseUrl}}/items/7",
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{token}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "description":  "Detalle de una publicaciÃ³n con los datos pÃºblicos de su dueÃ±o (HU-05). Requiere token.\n\n- Visible en cualquier estado (por ejemplo RESERVADO).\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseÃ±a del dueÃ±o.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR â€” el id no es un nÃºmero\n- 401 UNAUTHORIZED â€” sin token o token vencido\n- 404 NOT_FOUND â€” \"No encontramos esa publicaciÃ³n\""
+                                                  },
+                                      "response":  [
+                                                       {
+                                                           "name":  "200 - Detalle",
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"item\": {\n    \"id\": 7,\n    \"titulo\": \"Calculadora Casio fx-82\",\n    \"descripcion\": \"Funciona perfecto, con tapa\",\n    \"categoria\": \"CALCULADORA\",\n    \"estadoConservacion\": \"BUENO\",\n    \"materia\": \"FÃ­sica I\",\n    \"fotoUrl\": null,\n    \"estado\": \"DISPONIBLE\",\n    \"ownerId\": 1,\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n    \"updatedAt\": \"2026-10-25T15:00:00.000Z\"\n  },\n  \"owner\": {\n    \"id\": 1,\n    \"nombre\": \"TomÃ¡s Bellizzi\",\n    \"carrera\": \"IngenierÃ­a en Sistemas\",\n    \"reputacion\": {\n      \"promedio\": 4.5,\n      \"cantidad\": 2\n    }\n  }\n}"
+                                                       },
+                                                       {
+                                                           "name":  "404 - No existe",
+                                                           "status":  "Not Found",
+                                                           "code":  404,
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "body":  "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicaciÃ³n\"\n  }\n}"
+                                                       }
+                                                   ]
+                                  },
+                                  {
+                                      "request":  {
+                                                      "body":  {
+                                                                   "raw":  "{\\n  \"titulo\": \"Calculadora Casio fx-82 Plus\",\\n  \"descripcion\": \"Incluye funda protectora y manual\",\\n  \"categoria\": \"CALCULADORA\",\\n  \"estadoConservacion\": \"BUENO\",\\n  \"materia\": \"Física I\",\\n  \"estado\": \"PAUSADO\"\\n}",
+                                                                   "mode":  "raw"
+                                                               },
+                                                      "description":  "Edita los datos de una publicación propia o cambia su estado (HU-14). Requiere token y ser el dueño del ítem.\n\nBody: campos opcionales { titulo?, descripcion?, categoria?, estadoConservacion?, materia?, fotoUrl?, estado? }.\n- titulo: 3 a 80 caracteres.\n- descripcion: hasta 500 caracteres, o null para quitarla.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- materia: hasta 80 caracteres, o null para quitarla.\n- fotoUrl: URL válida o null para quitarla.\n- estado: DISPONIBLE | PAUSADO (permite pausar y reactivar la publicación).\n- Solo el dueño puede editar (403 si no es el dueño).\n- No se puede editar un ítem en estado INTERCAMBIADO (400).\n\nRespuestas:\n- 200 { item } — publicación actualizada\n- 400 VALIDATION_ERROR — datos inválidos o body vacío\n- 400 BAD_REQUEST — el ítem ya fue intercambiado\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño\n- 404 NOT_FOUND — publicación inexistente",
+                                                      "auth":  {
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{token}}"
+                                                                                  }
+                                                                              ],
+                                                                   "type":  "bearer"
+                                                               },
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "method":  "PATCH",
+                                                      "url":  "{{baseUrl}}/items/7"
+                                                  },
+                                      "name":  "Editar publicación",
+                                      "response":  [
+                                                       {
+                                                           "body":  "{\\n  \"item\": {\\n    \"id\": 7,\\n    \"titulo\": \"Calculadora Casio fx-82 Plus\",\\n    \"descripcion\": \"Incluye funda protectora y manual\",\\n    \"categoria\": \"CALCULADORA\",\\n    \"estadoConservacion\": \"BUENO\",\\n    \"materia\": \"Física I\",\\n    \"fotoUrl\": \"https://example.com/casio.jpg\",\\n    \"estado\": \"PAUSADO\",\\n    \"ownerId\": 1,\\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\\n    \"updatedAt\": \"2026-10-30T17:00:00.000Z\"\\n  }\\n}",
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "name":  "200 - Publicación actualizada",
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ]
+                                                       },
+                                                       {
+                                                           "body":  "{\\n  \"error\": {\\n    \"code\": \"BAD_REQUEST\",\\n    \"message\": \"No podés editar una publicación que ya fue intercambiada\"\\n  }\\n}",
+                                                           "status":  "Bad Request",
+                                                           "code":  400,
+                                                           "name":  "400 - Ítem ya intercambiado",
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ]
+                                                       },
+                                                       {
+                                                           "body":  "{\\n  \"error\": {\\n    \"code\": \"FORBIDDEN\",\\n    \"message\": \"Solo el dueño puede editar esta publicación\"\\n  }\\n}",
+                                                           "status":  "Forbidden",
+                                                           "code":  403,
+                                                           "name":  "403 - No es el dueño",
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ]
+                                                       },
+                                                       {
+                                                           "body":  "{\\n  \"error\": {\\n    \"code\": \"NOT_FOUND\",\\n    \"message\": \"No encontramos esa publicación\"\\n  }\\n}",
+                                                           "status":  "Not Found",
+                                                           "code":  404,
+                                                           "name":  "404 - Publicación inexistente",
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ]
+                                                       }
+                                                   ]
+                                  }
+                              ]
+                 }
+             ]
 }
