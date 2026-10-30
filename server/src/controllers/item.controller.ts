@@ -14,3 +14,9 @@ export const list: RequestHandler = async (req, res) => {
   // validate ya reemplazó req.query por los filtros parseados (con page y limit por defecto).
   res.json(await itemService.listItems(req.user!.id, req.query as unknown as ListItemsQuery));
 };
+
+// Elimina lógicamente el ítem propio (HU-15). Responde 204 sin cuerpo en caso de éxito.
+export const remove: RequestHandler = async (req, res) => {
+  await itemService.deleteItem(Number(req.params.id), req.user!.id);
+  res.status(204).end();
+};
