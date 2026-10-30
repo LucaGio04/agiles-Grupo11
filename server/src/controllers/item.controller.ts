@@ -14,3 +14,9 @@ export const list: RequestHandler = async (req, res) => {
   // validate ya reemplazó req.query por los filtros parseados (con page y limit por defecto).
   res.json(await itemService.listItems(req.user!.id, req.query as unknown as ListItemsQuery));
 };
+
+// Edita una publicación propia (HU-14).
+export const update: RequestHandler = async (req, res) => {
+  const item = await itemService.updateItem(Number(req.params.id), req.user!.id, req.body);
+  res.json({ item });
+};

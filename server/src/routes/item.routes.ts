@@ -6,6 +6,7 @@ import {
   createItemSchema,
   itemIdParamsSchema,
   listItemsQuerySchema,
+  updateItemSchema,
 } from '../schemas/item.schema.js';
 
 const router = Router();
@@ -13,5 +14,11 @@ const router = Router();
 router.get('/', requireAuth, validate({ query: listItemsQuerySchema }), itemController.list);
 router.post('/', requireAuth, validate({ body: createItemSchema }), itemController.create);
 router.get('/:id', requireAuth, validate({ params: itemIdParamsSchema }), itemController.getById);
+router.patch(
+  '/:id',
+  requireAuth,
+  validate({ params: itemIdParamsSchema, body: updateItemSchema }),
+  itemController.update
+);
 
 export default router;
