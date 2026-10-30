@@ -1,6 +1,7 @@
 import { tokenStorage } from '../auth/tokenStorage.ts';
 import type { EstadoItem, Item } from './items.ts';
 import type { EstadoPropuesta, Intercambio } from './proposals.ts';
+import type { PerfilPublico } from './users.ts';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -91,4 +92,9 @@ export function getMyProposals(status?: EstadoPropuesta) {
   if (status) params.set('status', status);
   const query = params.toString();
   return apiFetch<{ data: Intercambio[] }>(`/api/proposals${query ? `?${query}` : ''}`);
+}
+
+// Perfil público de un estudiante. El mismo dato si el id es el del usuario logueado.
+export function getUserProfile(id: string) {
+  return apiFetch<{ data: PerfilPublico }>(`/api/users/${id}`);
 }
