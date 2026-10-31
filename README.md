@@ -134,6 +134,8 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                    |
 | POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                   |
 | GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                |
+| GET    | `/api/users/me`       | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)                                 |
+| PATCH  | `/api/users/me`       | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                  |
 | GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                            |
 | POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                    |
 | GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno responde 404   |
@@ -197,7 +199,7 @@ Authorization: Bearer <token>
 | `/registro`  | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
 | `/publicar`  | Con sesión | Formulario para publicar un material (HU-03)                                                 |
 | `/items/:id` | Con sesión | Detalle de una publicación (HU-05)                                                           |
-| `/perfil`    | Con sesión | Mis publicaciones por estado e historial de intercambios concretados                         |
+| `/perfil`    | Con sesión | Datos personales, publicaciones por estado e historial de intercambios                       |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen anidándolas bajo `<PrivateRoute>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 

@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
+      updateUser: setUser,
     }),
     [user, status, login, register, logout]
   );
