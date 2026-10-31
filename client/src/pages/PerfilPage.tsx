@@ -4,12 +4,13 @@ import { Button } from '../components/ui/Button.tsx';
 import { Card } from '../components/ui/Card.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
-import { ApiError, getMyItems, getMyProposals } from '../lib/api.ts';
+import { ApiError, getMyItems, getMyProposals, updateItemEstado } from '../lib/api.ts';
 import { ESTADOS_ITEM, type EstadoItem, type Item } from '../lib/items.ts';
 import type { CalificacionResumen, Intercambio } from '../lib/proposals.ts';
 
 const ITEMS_ERROR = 'No pudimos cargar tus publicaciones. Revisá tu conexión y probá de nuevo.';
 const HISTORY_ERROR = 'No pudimos cargar tu historial. Revisá tu conexión y probá de nuevo.';
+const UPDATE_ERROR = 'No pudimos actualizar la publicación. Revisá tu conexión y probá de nuevo.';
 
 const TABS: { estado: EstadoItem; label: string }[] = [
   { estado: 'DISPONIBLE', label: 'Disponibles' },
@@ -48,11 +49,17 @@ function useSection<T>(load: () => Promise<T>, fallback: string) {
     setRetry((n) => n + 1);
   }
 
-  return { state, retryLoad };
+  // Cambia los datos ya cargados sin volver a pedirlos.
+  function update(change: (data: T) => T) {
+    setState((prev) => (prev.status === 'ok' ? { status: 'ok', data: change(prev.data) } : prev));
+  }
+
+  return { state, retryLoad, update };
 }
 
 export function PerfilPage() {
   const [tab, setTab] = useState<EstadoItem>('DISPONIBLE');
+  const [notice, setNotice] = useState<string | null>(null);
   const loadItems = useCallback(() => getMyItems(), []);
   const loadHistory = useCallback(() => getMyProposals('CONCRETADA'), []);
   const items = useSection(loadItems, ITEMS_ERROR);
@@ -60,6 +67,18 @@ export function PerfilPage() {
 
   const mine = items.state.status === 'ok' ? items.state.data.data : [];
   const visibles = mine.filter((item) => item.estado === tab);
+
+  // El ítem pasa a la pestaña de su nuevo estado: se avisa dónde quedó.
+  function handleEstadoChange(updated: Item) {
+    items.update(({ data }) => ({
+      data: data.map((item) => (item.id === updated.id ? updated : item)),
+    }));
+    setNotice(
+      updated.estado === 'PAUSADO'
+        ? `Pausaste "${updated.titulo}". Lo encontrás en Pausados.`
+        : `Reactivaste "${updated.titulo}". Lo encontrás en Disponibles.`
+    );
+  }
 
   return (
     <div className="profile-page">
@@ -76,6 +95,12 @@ export function PerfilPage() {
           </div>
         ) : (
           <>
+            {notice && (
+              <p className="form-success" role="status">
+                {notice}
+              </p>
+            )}
+
             <div className="profile-tabs" role="tablist" aria-label="Estado de tus publicaciones">
               {TABS.map((itemTab) => {
                 const count = mine.filter((item) => item.estado === itemTab.estado).length;
@@ -104,7 +129,7 @@ export function PerfilPage() {
                 <ul className="profile-list">
                   {visibles.map((item) => (
                     <li key={item.id}>
-                      <ItemPublicacion item={item} />
+                      <ItemPublicacion item={item} onEstadoChange={handleEstadoChange} />
                     </li>
                   ))}
                 </ul>
@@ -143,7 +168,34 @@ export function PerfilPage() {
   );
 }
 
-function ItemPublicacion({ item }: { item: Item }) {
+function ItemPublicacion({
+  item,
+  onEstadoChange,
+}: {
+  item: Item;
+  onEstadoChange: (updated: Item) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Mismas reglas que PATCH /api/items/:id: un INTERCAMBIADO no se edita y un RESERVADO no se pausa.
+  const puedeEditar = item.estado !== 'INTERCAMBIADO';
+  const puedePausar = item.estado === 'DISPONIBLE' || item.estado === 'PAUSADO';
+
+  async function toggleEstado() {
+    setSaving(true);
+    setError(null);
+    try {
+      const nuevoEstado = item.estado === 'PAUSADO' ? 'DISPONIBLE' : 'PAUSADO';
+      const { item: updated } = await updateItemEstado(item.id, nuevoEstado);
+      onEstadoChange(updated);
+    } catch (err) {
+      setError(messageFrom(err, UPDATE_ERROR));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Card className="profile-item-card">
       <div className="profile-item-heading">
@@ -152,15 +204,21 @@ function ItemPublicacion({ item }: { item: Item }) {
         </h3>
         <span className="profile-item-status">{ESTADOS_ITEM[item.estado]}</span>
       </div>
-      <div className="profile-item-actions">
-        {/* TODO(HU-14): acá va la llamada para editar o pausar/reactivar, y el refresco de la lista sin recargar. */}
-        <Button variant="secondary" disabled title="Próximamente">
-          Editar
-        </Button>
-        <Button variant="secondary" disabled title="Próximamente">
-          {item.estado === 'PAUSADO' ? 'Reactivar' : 'Pausar'}
-        </Button>
-      </div>
+      {error && <ErrorMessage message={error} />}
+      {(puedeEditar || puedePausar) && (
+        <div className="profile-item-actions">
+          {puedeEditar && (
+            <Link to={`/items/${item.id}/editar`} className="btn-secondary">
+              Editar
+            </Link>
+          )}
+          {puedePausar && (
+            <Button variant="secondary" onClick={toggleEstado} loading={saving}>
+              {item.estado === 'PAUSADO' ? 'Reactivar' : 'Pausar'}
+            </Button>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

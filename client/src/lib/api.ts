@@ -86,6 +86,11 @@ export function getMyItems(status?: EstadoItem) {
   return apiFetch<{ data: Item[] }>(`/api/users/me/items${query ? `?${query}` : ''}`);
 }
 
+// Pausa o reactiva una publicación propia.
+export function updateItemEstado(id: number, estado: 'DISPONIBLE' | 'PAUSADO') {
+  return apiFetch<{ item: Item }>(`/api/items/${id}`, { method: 'PATCH', body: { estado } });
+}
+
 // Propuestas en las que participa el usuario logueado.
 export function getMyProposals(status?: EstadoPropuesta) {
   const params = new URLSearchParams();
