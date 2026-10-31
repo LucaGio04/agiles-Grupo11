@@ -9,13 +9,14 @@ export async function createItem(ownerId: number, data: CreateItemInput) {
 }
 
 // Detalle de un ítem con los datos públicos de su dueño y su reputación (HU-05).
-// Es visible en cualquier estado (por ejemplo RESERVADO); el front decide qué acciones mostrar.
-export async function getItemById(id: number) {
+// RESERVADO e INTERCAMBIADO se ven igual. Un PAUSADO solo lo ve el dueño:
+// para cualquier otra persona es el mismo 404 que si no existiera.
+export async function getItemById(id: number, viewerId: number) {
   const item = await prisma.item.findUnique({
     where: { id },
     include: { owner: { select: { id: true, nombre: true, carrera: true } } },
   });
-  if (!item) {
+  if (!item || (item.estado === 'PAUSADO' && item.ownerId !== viewerId)) {
     throw AppError.notFound('No encontramos esa publicación');
   }
 

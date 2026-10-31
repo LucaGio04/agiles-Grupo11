@@ -74,6 +74,16 @@ npm run seed         # carga 5 usuarios y 20 ítems de ejemplo
 
 Todos los usuarios del seed (`tomas@utn.edu.ar`, `luca@utn.edu.ar`, `facundo@utn.edu.ar`, `joaquin@utn.edu.ar`, `martina@utn.edu.ar`) tienen la contraseña `Trueque123`. El seed borra y vuelve a crear los datos, así que se puede correr cuantas veces haga falta.
 
+Para probar el perfil (un ítem en cada estado y el historial de intercambios) hay un seed aparte. No se corre con `npm run seed` ni con `prisma migrate reset`:
+
+```bash
+npm run db:seed:demo
+```
+
+Se puede correr varias veces: actualiza los mismos datos en lugar de duplicarlos. Reutiliza a `tomas@utn.edu.ar` si ya existe (no le cambia la contraseña) y crea a `sofia.demo@utn.edu.ar` con la contraseña `Trueque123` si no estaba. Tomás queda con un ítem disponible, uno reservado, uno pausado y uno intercambiado. Sofía queda con un ítem pausado, que Tomás no puede ver. Hay dos intercambios concretados entre los dos: uno con calificación dada y recibida, y otro sin calificar.
+
+`npm run seed` borra toda la base antes de cargar, así que después hay que volver a correr `npm run db:seed:demo`.
+
 Otros comandos útiles (desde `server/`):
 
 ```bash
@@ -118,18 +128,67 @@ npm run dev -w client
 
 La colección de Postman con todos los endpoints, ejemplos y respuestas está en [`docs/postman/TruequeUTN.postman_collection.json`](docs/postman/TruequeUTN.postman_collection.json) (en Postman: _File → Import_). El request de login guarda el token para usarlo en los endpoints protegidos.
 
-| Método | Ruta                 | Auth | Descripción                                                      |
-| ------ | -------------------- | ---- | ---------------------------------------------------------------- |
-| GET    | `/api/health`        | No   | Estado del server                                                |
-| POST   | `/api/auth/register` | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)         |
-| POST   | `/api/auth/login`    | No   | Inicia sesión: devuelve `{ user, token }`                        |
-| GET    | `/api/auth/me`       | Sí   | Usuario del token (para restaurar la sesión)                     |
-| GET    | `/api/users/me`      | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)      |
-| PATCH  | `/api/users/me`      | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)       |
-| GET    | `/api/items`         | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04) |
-| POST   | `/api/items`         | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)         |
-| GET    | `/api/items/:id`     | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05)         |
-| POST   | `/api/uploads`       | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)      |
+| Método | Ruta                  | Auth | Descripción                                                                                 |
+| ------ | --------------------- | ---- | ------------------------------------------------------------------------------------------- |
+| GET    | `/api/health`         | No   | Estado del server                                                                           |
+| POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                    |
+| POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                   |
+| GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                |
+| GET    | `/api/users/me`       | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)                                 |
+| PATCH  | `/api/users/me`       | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                  |
+| GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                            |
+| POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                    |
+| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno responde 404   |
+| POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                 |
+| GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados               |
+| GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones |
+
+`GET /api/users/me/items` usa el id del token, nunca un id de la URL. `status` tiene que ser `DISPONIBLE`, `RESERVADO`, `PAUSADO` o `INTERCAMBIADO`. Un valor inválido responde 400.
+
+```http
+GET /api/users/me/items?status=PAUSADO
+Authorization: Bearer <token>
+```
+
+```json
+{ "data": [{ "id": 4, "titulo": "Demo: Calculadora pausada", "estado": "PAUSADO", "ownerId": 1 }] }
+```
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Los datos enviados no son válidos",
+    "details": [{ "field": "query.status", "message": "El estado no es válido" }]
+  }
+}
+```
+
+`GET /api/proposals?status=CONCRETADA` lista solo intercambios donde el usuario es proponente o receptor. Sin `status` devuelve todos los suyos. La calificación es `null` si esa persona todavía no calificó.
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "estado": "CONCRETADA",
+      "rol": "proponente",
+      "persona": { "id": 6, "nombre": "Sofía Demo" },
+      "itemSolicitado": { "id": 8, "titulo": "Demo: Libro pausado de Sofía", "estado": "PAUSADO" },
+      "itemOfrecido": {
+        "id": 5,
+        "titulo": "Demo: Instrumental intercambiado",
+        "estado": "INTERCAMBIADO"
+      },
+      "calificacionDada": { "puntaje": 5, "comentario": "El intercambio fue claro y rápido." },
+      "calificacionRecibida": {
+        "puntaje": 4,
+        "comentario": "El material estaba como lo describió."
+      }
+    }
+  ]
+}
+```
 
 ## Frontend: rutas y sesión
 
@@ -140,6 +199,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | `/registro`  | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
 | `/publicar`  | Con sesión | Formulario para publicar un material (HU-03)                                                 |
 | `/items/:id` | Con sesión | Detalle de una publicación (HU-05)                                                           |
+| `/perfil`    | Con sesión | Datos personales, publicaciones por estado e historial de intercambios                       |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen anidándolas bajo `<PrivateRoute>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 

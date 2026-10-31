@@ -7,7 +7,7 @@ export const create: RequestHandler = async (req, res) => {
 };
 
 export const getById: RequestHandler = async (req, res) => {
-  res.json(await itemService.getItemById(Number(req.params.id)));
+  res.json(await itemService.getItemById(Number(req.params.id), req.user!.id));
 };
 
 export const list: RequestHandler = async (req, res) => {
