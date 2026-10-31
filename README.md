@@ -72,7 +72,7 @@ npm run db:migrate   # npx prisma migrate dev (crea las tablas)
 npm run seed         # carga 5 usuarios y 20 ítems de ejemplo
 ```
 
-Todos los usuarios del seed (`tomas@utn.edu.ar`, `luca@utn.edu.ar`, `facundo@utn.edu.ar`, `joaquin@utn.edu.ar`, `martina@utn.edu.ar`) tienen la contraseña `Trueque123`. El seed borra y vuelve a crear los datos, así que se puede correr cuantas veces haga falta.
+Todos los usuarios del seed (`tomas@utn.edu.ar`, `luca@utn.edu.ar`, `facundo@utn.edu.ar`, `joaquin@utn.edu.ar`, `martina@utn.edu.ar`) tienen la contraseña `Trueque123`. El seed borra y vuelve a crear los datos, así que se puede correr cuantas veces haga falta. Las fotos de prueba de los ítems salen de `server/prisma/seed-assets/` y se copian a `server/uploads/`. Para sumar publicaciones en todos los estados e intercambios concretados, corré `npm run db:seed:demo -w server`.
 
 Para probar el perfil (un ítem en cada estado y el historial de intercambios) hay un seed aparte. No se corre con `npm run seed` ni con `prisma migrate reset`:
 

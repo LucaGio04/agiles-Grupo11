@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../src/lib/prisma.js';
 import type { Prisma } from '../src/generated/prisma/client.js';
+import { fotoDeSeed } from './seed-fotos.js';
 
 // Contraseña común de todos los usuarios de prueba (solo para desarrollo).
 const SEED_PASSWORD = 'Trueque123';
@@ -18,6 +19,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 0,
     titulo: 'Análisis Matemático I - Thomas Finney',
+    fotoUrl: fotoDeSeed('libro-analisis-1'),
     categoria: 'LIBRO',
     estadoConservacion: 'BUENO',
     materia: 'Análisis Matemático I',
@@ -26,6 +28,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 0,
     titulo: 'Calculadora Casio fx-991ES Plus',
+    fotoUrl: fotoDeSeed('calculadora-991es'),
     categoria: 'CALCULADORA',
     estadoConservacion: 'BUENO',
     descripcion: 'Funciona perfecto, con tapa.',
@@ -36,10 +39,12 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
     categoria: 'APUNTE',
     estadoConservacion: 'USADO',
     materia: 'Algoritmos y Estructuras de Datos',
+    fotoUrl: fotoDeSeed('apunte-algoritmos'),
   },
   {
     ownerIndex: 0,
     titulo: 'Física I - Resnick',
+    fotoUrl: fotoDeSeed('libro-fisica-1'),
     categoria: 'LIBRO',
     estadoConservacion: 'USADO',
     materia: 'Física I',
@@ -47,6 +52,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 1,
     titulo: 'Álgebra y Geometría Analítica - Kozak',
+    fotoUrl: fotoDeSeed('libro-algebra'),
     categoria: 'LIBRO',
     estadoConservacion: 'BUENO',
     materia: 'Álgebra y Geometría Analítica',
@@ -57,17 +63,20 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
     categoria: 'APUNTE',
     estadoConservacion: 'NUEVO',
     materia: 'Sistemas y Organizaciones',
+    fotoUrl: fotoDeSeed('resumen-sistemas'),
     descripcion: 'Resumen completo, impreso y anillado.',
   },
   {
     ownerIndex: 1,
     titulo: 'Calculadora científica Casio fx-82MS',
+    fotoUrl: fotoDeSeed('calculadora-82ms'),
     categoria: 'CALCULADORA',
     estadoConservacion: 'USADO',
   },
   {
     ownerIndex: 1,
     titulo: 'Arquitectura de Computadoras - Tanenbaum',
+    fotoUrl: fotoDeSeed('libro-arquitectura'),
     categoria: 'LIBRO',
     estadoConservacion: 'BUENO',
     materia: 'Arquitectura de Computadoras',
@@ -75,6 +84,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 2,
     titulo: 'Kit de escuadras y compás',
+    fotoUrl: fotoDeSeed('kit-escuadras'),
     categoria: 'INSTRUMENTAL',
     estadoConservacion: 'BUENO',
     materia: 'Sistemas de Representación',
@@ -83,6 +93,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 2,
     titulo: 'Tablero de dibujo A3',
+    fotoUrl: fotoDeSeed('tablero-dibujo'),
     categoria: 'INSTRUMENTAL',
     estadoConservacion: 'USADO',
     materia: 'Sistemas de Representación',
@@ -90,6 +101,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 2,
     titulo: 'Química General - Chang',
+    fotoUrl: fotoDeSeed('libro-quimica'),
     categoria: 'LIBRO',
     estadoConservacion: 'BUENO',
     materia: 'Química General',
@@ -100,6 +112,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
     categoria: 'APUNTE',
     estadoConservacion: 'USADO',
     materia: 'Estabilidad I',
+    fotoUrl: fotoDeSeed('apunte-estabilidad'),
   },
   {
     ownerIndex: 3,
@@ -107,10 +120,12 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
     categoria: 'APUNTE',
     estadoConservacion: 'BUENO',
     materia: 'Electrotecnia',
+    fotoUrl: fotoDeSeed('catedra-electrotecnia'),
   },
   {
     ownerIndex: 3,
     titulo: 'Multímetro digital',
+    fotoUrl: fotoDeSeed('multimetro'),
     categoria: 'INSTRUMENTAL',
     estadoConservacion: 'BUENO',
     descripcion: 'Con puntas de prueba, sin batería.',
@@ -118,6 +133,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 3,
     titulo: 'Análisis Matemático II - Rabuffetti',
+    fotoUrl: fotoDeSeed('libro-analisis-2'),
     categoria: 'LIBRO',
     estadoConservacion: 'USADO',
     materia: 'Análisis Matemático II',
@@ -125,6 +141,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 3,
     titulo: 'Calculadora graficadora TI-84',
+    fotoUrl: fotoDeSeed('calculadora-ti84'),
     categoria: 'CALCULADORA',
     estadoConservacion: 'BUENO',
   },
@@ -134,10 +151,12 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
     categoria: 'APUNTE',
     estadoConservacion: 'NUEVO',
     materia: 'Física II',
+    fotoUrl: fotoDeSeed('guia-fisica'),
   },
   {
     ownerIndex: 4,
     titulo: 'Tabla periódica plastificada',
+    fotoUrl: fotoDeSeed('tabla-periodica'),
     categoria: 'OTRO',
     estadoConservacion: 'BUENO',
     materia: 'Química General',
@@ -145,6 +164,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 4,
     titulo: 'Probabilidad y Estadística - Walpole',
+    fotoUrl: fotoDeSeed('libro-probabilidad'),
     categoria: 'LIBRO',
     estadoConservacion: 'BUENO',
     materia: 'Probabilidad y Estadística',
@@ -152,6 +172,7 @@ const items: (Omit<Prisma.ItemCreateManyInput, 'ownerId'> & { ownerIndex: number
   {
     ownerIndex: 4,
     titulo: 'Guardapolvo de laboratorio talle M',
+    fotoUrl: fotoDeSeed('guardapolvo'),
     categoria: 'OTRO',
     estadoConservacion: 'USADO',
     descripcion: 'Para los laboratorios de Química.',
