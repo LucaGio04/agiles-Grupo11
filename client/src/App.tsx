@@ -10,6 +10,7 @@ import { PerfilPage } from './pages/PerfilPage.tsx';
 import { PropuestasPage } from './pages/PropuestasPage.tsx';
 import { PublicarPage } from './pages/PublicarPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
+import { UsuarioPerfilPage } from './pages/UsuarioPerfilPage.tsx';
 import './styles/ui.css';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
               </>
             }
           />
+          <Route path="/usuarios/:id" element={<UsuarioPerfilPage />} />
         </Route>
       </Route>
 

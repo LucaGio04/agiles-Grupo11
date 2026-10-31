@@ -6,3 +6,7 @@ export const listMyItems: RequestHandler = async (req, res) => {
   const { status } = req.query as unknown as ListMyItemsQuery;
   res.json(await userService.listMyItems(req.user!.id, status));
 };
+
+export const getPublicProfile: RequestHandler = async (req, res) => {
+  res.json(await userService.getPublicProfile(Number(req.params.id)));
+};

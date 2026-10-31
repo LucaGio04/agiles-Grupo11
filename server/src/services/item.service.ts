@@ -2,6 +2,7 @@ import { AppError } from '../errors/AppError.js';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { CreateItemInput, ListItemsQuery } from '../schemas/item.schema.js';
+import { reputacionDe } from './reputation.js';
 
 // Publica un ítem nuevo del usuario logueado (HU-03). Arranca siempre DISPONIBLE (default del modelo).
 export async function createItem(ownerId: number, data: CreateItemInput) {
@@ -20,18 +21,14 @@ export async function getItemById(id: number, viewerId: number) {
     throw AppError.notFound('No encontramos esa publicación');
   }
 
-  const ratings = await prisma.rating.aggregate({
-    where: { evaluadoId: item.ownerId },
-    _avg: { puntaje: true },
-    _count: true,
-  });
+  const reputacion = await reputacionDe(item.ownerId);
 
   const { owner, ...itemData } = item;
   return {
     item: itemData,
     owner: {
       ...owner,
-      reputacion: { promedio: ratings._avg.puntaje, cantidad: ratings._count },
+      reputacion: { promedio: reputacion.promedio, cantidad: reputacion.cantidad },
     },
   };
 }

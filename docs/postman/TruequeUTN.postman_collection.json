@@ -524,6 +524,41 @@
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
+        },
+        {
+          "name": "Perfil público",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/7",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "description": "Perfil público de un estudiante. Requiere token. El :id va después de /users/me/items para que \"me\" no se lea como id.\n\nDevuelve nombre, carrera, fecha de alta, reputación (promedio a un decimal o null), cantidad de reseñas, intercambios CONCRETADA en los que participa, ítems DISPONIBLE y las últimas 5 calificaciones recibidas (puntaje, comentario, fecha y nombre de quien calificó).\n\nNunca incluye email ni passwordHash.\n\nRespuestas:\n- 200 { data }\n- 400 VALIDATION_ERROR — id no es un entero positivo\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — no existe ese estudiante"
+          },
+          "response": [
+            {
+              "name": "200 - Perfil público",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"data\": {\n    \"id\": 7,\n    \"nombre\": \"Ana Demo\",\n    \"carrera\": \"Ingeniería en Sistemas\",\n    \"createdAt\": \"2026-03-01T12:00:00.000Z\",\n    \"reputacionPromedio\": 4.3,\n    \"cantidadResenas\": 2,\n    \"cantidadIntercambios\": 1,\n    \"items\": [\n      {\n        \"id\": 4,\n        \"titulo\": \"Apunte de álgebra\",\n        \"descripcion\": null,\n        \"categoria\": \"APUNTE\",\n        \"estadoConservacion\": \"BUENO\",\n        \"materia\": \"Álgebra\",\n        \"fotoUrl\": null,\n        \"estado\": \"DISPONIBLE\",\n        \"ownerId\": 7,\n        \"createdAt\": \"2026-03-01T12:00:00.000Z\",\n        \"updatedAt\": \"2026-03-01T12:00:00.000Z\"\n      }\n    ],\n    \"ultimasCalificaciones\": [\n      {\n        \"id\": 9,\n        \"puntaje\": 5,\n        \"comentario\": \"El intercambio fue claro.\",\n        \"createdAt\": \"2026-03-01T12:00:00.000Z\",\n        \"evaluador\": { \"id\": 2, \"nombre\": \"Sofía Demo\" }\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 - Estudiante inexistente",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos a ese estudiante\"\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ]
         }
       ]
     },
