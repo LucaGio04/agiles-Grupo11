@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../src/lib/prisma.js';
+import { fotoDeSeed } from './seed-fotos.js';
 
 // Datos extra para probar el perfil. No lo corre `npm run seed` ni `prisma migrate reset`.
 // Se puede ejecutar varias veces: busca por email, título o mensaje y actualiza lo que ya existe.
@@ -27,11 +28,13 @@ type DemoItem = {
   estadoConservacion: 'NUEVO' | 'BUENO' | 'USADO';
   materia: string;
   estado: 'DISPONIBLE' | 'RESERVADO' | 'PAUSADO' | 'INTERCAMBIADO';
+  fotoUrl?: string;
 };
 
 const itemsPrincipal: DemoItem[] = [
   {
     titulo: 'Demo: Análisis Matemático disponible',
+    fotoUrl: fotoDeSeed('libro-analisis-1'),
     descripcion: 'Ítem de demo en estado disponible.',
     categoria: 'LIBRO',
     estadoConservacion: 'BUENO',
@@ -45,9 +48,11 @@ const itemsPrincipal: DemoItem[] = [
     estadoConservacion: 'NUEVO',
     materia: 'Algoritmos y Estructuras de Datos',
     estado: 'RESERVADO',
+    fotoUrl: fotoDeSeed('apunte-ordenamiento'),
   },
   {
     titulo: 'Demo: Calculadora pausada',
+    fotoUrl: fotoDeSeed('calculadora-991es'),
     descripcion: 'Ítem de demo en estado pausado. Solo lo ve el dueño.',
     categoria: 'CALCULADORA',
     estadoConservacion: 'BUENO',
@@ -56,6 +61,7 @@ const itemsPrincipal: DemoItem[] = [
   },
   {
     titulo: 'Demo: Instrumental intercambiado',
+    fotoUrl: fotoDeSeed('kit-escuadras'),
     descripcion: 'Ítem de demo ya intercambiado.',
     categoria: 'INSTRUMENTAL',
     estadoConservacion: 'USADO',
@@ -66,6 +72,7 @@ const itemsPrincipal: DemoItem[] = [
 
 const itemAjeno: DemoItem = {
   titulo: 'Demo: Libro pausado de Sofía',
+  fotoUrl: fotoDeSeed('libro-quimica'),
   descripcion: 'Ítem pausado de otro usuario. No aparece en el perfil de Tomás.',
   categoria: 'LIBRO',
   estadoConservacion: 'BUENO',
