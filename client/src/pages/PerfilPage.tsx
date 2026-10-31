@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { useAuth } from '../auth/useAuth.ts';
 import { Button } from '../components/ui/Button.tsx';
 import { Card } from '../components/ui/Card.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
@@ -53,7 +52,6 @@ function useSection<T>(load: () => Promise<T>, fallback: string) {
 }
 
 export function PerfilPage() {
-  const { user } = useAuth();
   const [tab, setTab] = useState<EstadoItem>('DISPONIBLE');
   const loadItems = useCallback(() => getMyItems(), []);
   const loadHistory = useCallback(() => getMyProposals('CONCRETADA'), []);
@@ -65,11 +63,6 @@ export function PerfilPage() {
 
   return (
     <div className="profile-page">
-      <header className="profile-header">
-        <p className="eyebrow">Mi perfil</p>
-        <h1>{user?.nombre ?? 'Mi perfil'}</h1>
-      </header>
-
       <section className="profile-section" aria-labelledby="mis-publicaciones">
         <h2 id="mis-publicaciones">Mis publicaciones</h2>
         {items.state.status === 'loading' ? (

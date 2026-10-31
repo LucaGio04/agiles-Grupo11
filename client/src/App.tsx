@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router';
 import { PrivateRoute, RedirectIfAuthenticated } from './auth/guards.tsx';
 import { Layout } from './components/layout/Layout.tsx';
+import { ProfileCard } from './components/profile/ProfileCard.tsx';
 import { ItemDetailPage } from './pages/ItemDetailPage.tsx';
 import { ItemsPage } from './pages/ItemsPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
@@ -38,7 +39,15 @@ function App() {
           <Route path="/items/:id" element={<ItemDetailPage />} />
           <Route path="/publicar" element={<PublicarPage />} />
           <Route path="/propuestas" element={<PropuestasPage />} />
-          <Route path="/perfil" element={<PerfilPage />} />
+          <Route
+            path="/perfil"
+            element={
+              <>
+                <ProfileCard />
+                <PerfilPage />
+              </>
+            }
+          />
           <Route path="/usuarios/:id" element={<UsuarioPerfilPage />} />
         </Route>
       </Route>
