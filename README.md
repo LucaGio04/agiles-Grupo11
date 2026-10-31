@@ -134,6 +134,8 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                                   |
 | POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                                  |
 | GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                               |
+| GET    | `/api/users/me`       | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)                                                |
+| PATCH  | `/api/users/me`       | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                                 |
 | GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                           |
 | POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                   |
 | GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno responde 404                  |

@@ -173,6 +173,97 @@
       ]
     },
     {
+      "name": "Perfil",
+      "item": [
+        {
+          "name": "Mi perfil",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Perfil del usuario del token (HU-11). Requiere token.\n\n- user: id, nombre, email, carrera y createdAt (fecha de alta). Nunca incluye la contraseña.\n- reputacion: promedio de las calificaciones recibidas (null si no tiene) y cantidad.\n- intercambiosConcretados: propuestas CONCRETADA como proponente o receptor.\n\nRespuestas:\n- 200 { user, reputacion, intercambiosConcretados }\n- 401 UNAUTHORIZED — sin token o token vencido"
+          },
+          "response": [
+            {
+              "name": "200 - Perfil",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"email\": \"tomas@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\",\n    \"createdAt\": \"2026-09-20T15:00:00.000Z\"\n  },\n  \"reputacion\": {\n    \"promedio\": 4.5,\n    \"cantidad\": 2\n  },\n  \"intercambiosConcretados\": 2\n}"
+            }
+          ]
+        },
+        {
+          "name": "Editar mi perfil",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Tomás Bellizzi\",\n  \"carrera\": \"Ingeniería en Sistemas de Información\"\n}"
+            },
+            "description": "Edita el nombre y/o la carrera del usuario del token (HU-11). Requiere token.\n\n- Body: { nombre?, carrera? }. Tiene que venir al menos uno.\n- nombre: 1 a 80 caracteres. carrera: 1 a 100 caracteres.\n- El email no se puede modificar: si se envía, responde 400.\n- Cualquier otro campo (id, contraseña) se ignora.\n\nRespuestas:\n- 200 { user, reputacion, intercambiosConcretados } con los datos actualizados\n- 400 VALIDATION_ERROR — campo vacío, demasiado largo, sin cambios o con email\n- 401 UNAUTHORIZED — sin token o token vencido"
+          },
+          "response": [
+            {
+              "name": "200 - Perfil actualizado",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"email\": \"tomas@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas de Información\",\n    \"createdAt\": \"2026-09-20T15:00:00.000Z\"\n  },\n  \"reputacion\": {\n    \"promedio\": 4.5,\n    \"cantidad\": 2\n  },\n  \"intercambiosConcretados\": 2\n}"
+            },
+            {
+              "name": "400 - Email no editable",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.email\",\n        \"message\": \"El email no se puede modificar\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Items",
       "item": [
         {

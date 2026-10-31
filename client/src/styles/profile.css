@@ -1,0 +1,75 @@
+/* Mis datos en /perfil (HU-11) */
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 720px;
+  margin-bottom: 2.5rem;
+}
+
+.profile-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.profile-card-header h1 {
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * La ficha reutiliza .spec-sheet (ui.css, que se carga después): por eso las reglas propias
+ * llevan las dos clases, para ganarle en especificidad.
+ * Tiene seis celdas en dos columnas: las dos primeras filas llevan línea abajo.
+ */
+.spec-sheet.profile-sheet > div:nth-child(-n + 4) {
+  border-bottom-width: 1px;
+}
+
+.profile-sheet .reputation {
+  flex-wrap: wrap;
+}
+
+.profile-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line, var(--color-border));
+  border-radius: var(--radius);
+  background-color: var(--surface, #fff);
+}
+
+.profile-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* En celular la ficha pasa a una columna. */
+@media (max-width: 480px) {
+  .spec-sheet.profile-sheet {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spec-sheet.profile-sheet > div:nth-child(odd) {
+    border-right-width: 0;
+  }
+
+  .spec-sheet.profile-sheet > div:not(:last-child) {
+    border-bottom-width: 1px;
+  }
+
+  .profile-form-actions > button {
+    flex: 1 1 auto;
+  }
+}
