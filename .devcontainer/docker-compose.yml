@@ -1,0 +1,22 @@
+# Entorno de GitHub Codespaces: el contenedor de la app comparte la red con PostgreSQL,
+# así que la base se ve en localhost:5432 igual que en desarrollo local.
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
+    volumes:
+      - ../..:/workspaces:cached
+    command: sleep infinity
+    network_mode: service:db
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trueque
+      POSTGRES_PASSWORD: trueque
+      POSTGRES_DB: truequeutn
+    volumes:
+      - truequeutn-db-data:/var/lib/postgresql/data
+
+volumes:
+  truequeutn-db-data:

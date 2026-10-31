@@ -124,6 +124,17 @@ npm run dev -w server
 npm run dev -w client
 ```
 
+## Demo con GitHub Codespaces (sin instalar nada)
+
+Para mostrar la app desde cualquier compu, solo con el navegador:
+
+1. En GitHub, en la rama a mostrar (por ejemplo `develop`): **Code → Codespaces → Create codespace on develop**.
+2. Esperar a que termine de armarse (la primera vez tarda unos minutos: instala dependencias, crea la base y carga los seeds). Al final se levanta solo `npm run dev`.
+3. En la pestaña **PORTS**, el puerto **5173** es la app. Para compartir el link con alguien que no tiene acceso al repo: clic derecho → **Port Visibility → Public** (el script lo intenta hacer solo). Copiar la URL (`https://<nombre>-5173.app.github.dev`).
+4. Ingresar con `tomas@utn.edu.ar` / `Trueque123` (o cualquier usuario del seed).
+
+El front usa la API por su mismo origen (Vite hace de proxy de `/api` y `/uploads`), así que alcanza con compartir ese único puerto. El link funciona mientras el Codespace esté prendido; se apaga solo después de un rato sin uso y se vuelve a prender desde **Code → Codespaces**.
+
 ## Endpoints
 
 La colección de Postman con todos los endpoints, ejemplos y respuestas está en [`docs/postman/TruequeUTN.postman_collection.json`](docs/postman/TruequeUTN.postman_collection.json) (en Postman: _File → Import_). El request de login guarda el token para usarlo en los endpoints protegidos.

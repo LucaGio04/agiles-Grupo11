@@ -1,0 +1,25 @@
+// GitHub Codespaces: levanta la app completa (PostgreSQL + backend + frontend) en la nube,
+// sin instalar nada en la compu. Ver la sección "Demo con GitHub Codespaces" del README.
+{
+  "name": "TruequeUTN",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [5173, 3001],
+  "portsAttributes": {
+    "5173": { "label": "TruequeUTN (app)", "onAutoForward": "openBrowser" },
+    "3001": { "label": "API", "onAutoForward": "silent" }
+  },
+  // Instala dependencias, crea las tablas y carga los datos de prueba (solo la primera vez).
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  // Levanta back + front cada vez que se abre el Codespace.
+  "postAttachCommand": "bash .devcontainer/start.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "Prisma.prisma"]
+    },
+    "codespaces": {
+      "openFiles": ["README.md"]
+    }
+  }
+}
