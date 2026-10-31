@@ -435,7 +435,7 @@
                 }
               ]
             },
-            "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- RESERVADO e INTERCAMBIADO se ven con cualquier usuario logueado.\n- Un ítem PAUSADO solo lo ve su dueño. Si lo pide otra persona, responde 404 con el mismo mensaje que si no existiera.\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\" (no existe, o está pausada y no sos el dueño)"
+            "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- RESERVADO e INTERCAMBIADO se ven con cualquier usuario logueado.\n- Un ítem PAUSADO solo lo ve su dueño. Si lo pide otra persona, responde 404 con el mismo mensaje que si no existiera.\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\" (no existe, fue eliminada, o está pausada y no sos el dueño)"
           },
           "response": [
             {
@@ -461,6 +461,57 @@
                 }
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/items/7",
+            "description": "Elimina lógicamente una publicación propia (HU-15). Requiere token y ser el dueño del ítem.\n\n- Pasa el estado del ítem a ELIMINADO para conservar el historial de calificaciones.\n- Cancela todas las propuestas PENDIENTES asociadas al ítem.\n- Si el ítem tiene una propuesta ACEPTADA en curso, responde 409 y bloquea la eliminación.\n- Un ítem INTERCAMBIADO no se puede eliminar: responde 409.\n- Una publicación ya eliminada responde 404.\n\nRespuestas:\n- 204 No Content — publicación eliminada con éxito\n- 400 VALIDATION_ERROR — id de ítem inválido\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño de la publicación\n- 404 NOT_FOUND — publicación inexistente o ya eliminada\n- 409 PROPOSAL_ACCEPTED — tiene una propuesta aceptada en curso\n- 409 CONFLICT — el ítem ya fue intercambiado",
+            "auth": {
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{token}}"
+                }
+              ],
+              "type": "bearer"
+            }
+          },
+          "name": "Eliminar publicación",
+          "response": [
+            {
+              "body": "",
+              "status": "No Content",
+              "code": 204,
+              "name": "204 - Publicación eliminada",
+              "header": []
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo el dueño puede eliminar esta publicación\"\n  }\n}",
+              "status": "Forbidden",
+              "code": 403,
+              "name": "403 - No es el dueño",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"PROPOSAL_ACCEPTED\",\n    \"message\": \"No podés eliminar este ítem porque tiene una propuesta aceptada en curso\"\n  }\n}",
+              "status": "Conflict",
+              "code": 409,
+              "name": "409 - Propuesta aceptada en curso",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
             }
           ]
         }

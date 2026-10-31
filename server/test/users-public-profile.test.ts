@@ -296,7 +296,10 @@ describe('GET /api/users/:id', () => {
     assert.equal(res.status, 200);
     const body = (await res.json()) as { data: { id: number }[] };
     assert.equal(body.data[0].id, 4);
-    assert.deepEqual(findMany.mock.calls.at(-1)!.arguments[0].where, { ownerId: 1 });
+    assert.deepEqual(findMany.mock.calls.at(-1)!.arguments[0].where, {
+      ownerId: 1,
+      estado: { not: 'ELIMINADO' },
+    });
     assert.equal(findUnique.mock.callCount(), 0);
   });
 });

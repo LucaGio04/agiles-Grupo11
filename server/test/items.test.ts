@@ -241,6 +241,23 @@ describe('GET /api/items/:id', () => {
     }
   });
 
+  it('un ítem ELIMINADO responde 404, también para el dueño', async () => {
+    const previous = storedItem.estado;
+    storedItem.estado = 'ELIMINADO';
+
+    try {
+      const res = await getItem('7');
+      assert.equal(res.status, 404);
+      const body = (await res.json()) as ErrorResponse;
+      assert.equal(body.error.code, 'NOT_FOUND');
+
+      const ownerToken = signToken({ id: storedItem.ownerId, email: 'dueno@utn.edu.ar' });
+      assert.equal((await getItem('7', ownerToken)).status, 404);
+    } finally {
+      storedItem.estado = previous;
+    }
+  });
+
   it('nunca expone el email ni la contraseña del dueño', async () => {
     const text = await (await getItem('7')).text();
     assert.ok(!text.includes('email'));

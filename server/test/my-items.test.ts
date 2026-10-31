@@ -59,7 +59,7 @@ describe('GET /api/users/me/items', () => {
 
     const query = lastQuery();
     // El ownerId sale del token: un pausado de otra persona no entra en esta consulta.
-    assert.deepEqual(query.where, { ownerId: 1 });
+    assert.deepEqual(query.where, { ownerId: 1, estado: { not: 'ELIMINADO' } });
     assert.deepEqual(query.orderBy, [{ createdAt: 'desc' }, { id: 'desc' }]);
   });
 
@@ -71,7 +71,7 @@ describe('GET /api/users/me/items', () => {
   it('un status vacío equivale a no filtrar', async () => {
     const res = await listMine('?status=');
     assert.equal(res.status, 200);
-    assert.deepEqual(lastQuery().where, { ownerId: 1 });
+    assert.deepEqual(lastQuery().where, { ownerId: 1, estado: { not: 'ELIMINADO' } });
   });
 
   it('un estado inválido responde 400 y no consulta la base', async () => {
@@ -80,6 +80,12 @@ describe('GET /api/users/me/items', () => {
     const { error } = (await res.json()) as ErrorResponse;
     assert.equal(error.code, 'VALIDATION_ERROR');
     assert.deepEqual(error.details, [{ field: 'query.status', message: 'El estado no es válido' }]);
+    assert.equal(findMany.mock.callCount(), 0);
+  });
+
+  it('ELIMINADO no es un filtro válido', async () => {
+    const res = await listMine('?status=ELIMINADO');
+    assert.equal(res.status, 400);
     assert.equal(findMany.mock.callCount(), 0);
   });
 

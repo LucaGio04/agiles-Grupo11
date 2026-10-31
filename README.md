@@ -138,7 +138,8 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | PATCH  | `/api/users/me`       | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                                 |
 | GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                           |
 | POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                   |
-| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno responde 404                  |
+| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno o un `ELIMINADO` responde 404 |
+| DELETE | `/api/items/:id`      | Sí   | Elimina lógicamente un ítem propio y cancela sus propuestas pendientes: 204 (HU-15)                        |
 | POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                                |
 | GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                              |
 | GET    | `/api/users/:id`      | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email |
@@ -275,15 +276,18 @@ Los tokens se generan con `signToken({ id, email })` de `lib/jwt.ts`. Sin token,
 { "error": { "code": "VALIDATION_ERROR", "message": "...", "details": [] } }
 ```
 
-| Caso                            | Status | `code`                |
-| ------------------------------- | ------ | --------------------- |
-| Body/query/params inválidos     | 400    | `VALIDATION_ERROR`    |
-| JSON mal formado                | 400    | `INVALID_JSON`        |
-| Email o contraseña incorrectos  | 401    | `INVALID_CREDENTIALS` |
-| Sin token, vencido o adulterado | 401    | `UNAUTHORIZED`        |
-| Origen no permitido por CORS    | 403    | `CORS_NOT_ALLOWED`    |
-| Ruta inexistente                | 404    | `NOT_FOUND`           |
-| Error no controlado             | 500    | `INTERNAL_ERROR`      |
+| Caso                                    | Status | `code`                |
+| --------------------------------------- | ------ | --------------------- |
+| Body/query/params inválidos             | 400    | `VALIDATION_ERROR`    |
+| JSON mal formado                        | 400    | `INVALID_JSON`        |
+| Email o contraseña incorrectos          | 401    | `INVALID_CREDENTIALS` |
+| Sin token, vencido o adulterado         | 401    | `UNAUTHORIZED`        |
+| Origen no permitido por CORS            | 403    | `CORS_NOT_ALLOWED`    |
+| Acción sobre un recurso ajeno           | 403    | `FORBIDDEN`           |
+| Ruta inexistente                        | 404    | `NOT_FOUND`           |
+| Eliminar un ítem con propuesta aceptada | 409    | `PROPOSAL_ACCEPTED`   |
+| Eliminar un ítem ya intercambiado       | 409    | `CONFLICT`            |
+| Error no controlado                     | 500    | `INTERNAL_ERROR`      |
 
 En los services y controllers alcanza con lanzar un `AppError` (por ejemplo `throw AppError.notFound('Ítem no encontrado')`): el middleware global lo convierte en la respuesta. No hace falta `try/catch` en handlers `async`, Express 5 reenvía el error solo. Con `NODE_ENV=production` el 500 no incluye el mensaje ni el stack.
 

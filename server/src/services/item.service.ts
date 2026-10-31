@@ -11,13 +11,17 @@ export async function createItem(ownerId: number, data: CreateItemInput) {
 
 // Detalle de un ítem con los datos públicos de su dueño y su reputación (HU-05).
 // RESERVADO e INTERCAMBIADO se ven igual. Un PAUSADO solo lo ve el dueño:
-// para cualquier otra persona es el mismo 404 que si no existiera.
+// para cualquier otra persona es el mismo 404 que si no existiera. Un ELIMINADO es 404 para todos.
 export async function getItemById(id: number, viewerId: number) {
   const item = await prisma.item.findUnique({
     where: { id },
     include: { owner: { select: { id: true, nombre: true, carrera: true } } },
   });
-  if (!item || (item.estado === 'PAUSADO' && item.ownerId !== viewerId)) {
+  if (
+    !item ||
+    item.estado === 'ELIMINADO' ||
+    (item.estado === 'PAUSADO' && item.ownerId !== viewerId)
+  ) {
     throw AppError.notFound('No encontramos esa publicación');
   }
 
@@ -60,4 +64,53 @@ export async function listItems(userId: number, { query, category, page, limit }
   ]);
 
   return { data, page, totalPages: Math.ceil(total / limit), total };
+}
+
+// Elimina lógicamente un ítem propio (HU-15).
+// - Un ítem ya eliminado responde lo mismo que uno inexistente (→ 404).
+// - Bloquea si ya fue intercambiado o si hay una propuesta ACEPTADA en curso (→ 409).
+// - Cancela todas las propuestas PENDIENTES sobre el ítem.
+// - Marca el ítem como ELIMINADO (borrado lógico para conservar el historial de calificaciones).
+export async function deleteItem(itemId: number, requesterId: number) {
+  const item = await prisma.item.findUnique({ where: { id: itemId } });
+
+  if (!item || item.estado === 'ELIMINADO') {
+    throw AppError.notFound('No encontramos esa publicación');
+  }
+  if (item.ownerId !== requesterId) {
+    throw AppError.forbidden('Solo el dueño puede eliminar esta publicación');
+  }
+  if (item.estado === 'INTERCAMBIADO') {
+    throw AppError.conflict('No podés eliminar una publicación que ya fue intercambiada');
+  }
+
+  // Regla de negocio: no se puede eliminar con una propuesta ACEPTADA activa.
+  const accepted = await prisma.proposal.findFirst({
+    where: {
+      OR: [{ itemSolicitadoId: itemId }, { itemOfrecidoId: itemId }],
+      estado: 'ACEPTADA',
+    },
+  });
+  if (accepted) {
+    throw new AppError(
+      409,
+      'PROPOSAL_ACCEPTED',
+      'No podés eliminar este ítem porque tiene una propuesta aceptada en curso'
+    );
+  }
+
+  // Cancelar propuestas PENDIENTES y marcar el ítem como ELIMINADO en una transacción.
+  await prisma.$transaction([
+    prisma.proposal.updateMany({
+      where: {
+        OR: [{ itemSolicitadoId: itemId }, { itemOfrecidoId: itemId }],
+        estado: 'PENDIENTE',
+      },
+      data: { estado: 'CANCELADA' },
+    }),
+    prisma.item.update({
+      where: { id: itemId },
+      data: { estado: 'ELIMINADO' },
+    }),
+  ]);
 }

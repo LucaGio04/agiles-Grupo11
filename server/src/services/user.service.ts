@@ -4,10 +4,10 @@ import type { ListMyItemsQuery } from '../schemas/user.schema.js';
 import { redondearPromedio, reputacionDe } from './reputation.js';
 
 // Publicaciones del usuario logueado, de la más reciente a la más antigua.
-// Sin status devuelve todos sus estados, pausados incluidos. El id sale del token.
+// Sin status devuelve todos sus estados, pausados incluidos, salvo los eliminados. El id sale del token.
 export async function listMyItems(ownerId: number, status?: ListMyItemsQuery['status']) {
   const data = await prisma.item.findMany({
-    where: { ownerId, ...(status ? { estado: status } : {}) },
+    where: { ownerId, estado: status ?? { not: 'ELIMINADO' } },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
   });
   return { data };
