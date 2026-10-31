@@ -16,7 +16,7 @@ export const ESTADOS_CONSERVACION = {
 
 export type Categoria = keyof typeof CATEGORIAS;
 export type EstadoConservacion = keyof typeof ESTADOS_CONSERVACION;
-export type EstadoItem = 'DISPONIBLE' | 'RESERVADO' | 'INTERCAMBIADO' | 'PAUSADO';
+export type EstadoItem = 'DISPONIBLE' | 'RESERVADO' | 'INTERCAMBIADO' | 'PAUSADO' | 'ELIMINADO';
 
 export type Item = {
   id: number;
@@ -46,6 +46,7 @@ export const ESTADOS_ITEM: Record<EstadoItem, string> = {
   RESERVADO: 'Reservado',
   INTERCAMBIADO: 'Intercambiado',
   PAUSADO: 'Pausado',
+  ELIMINADO: 'Eliminado',
 };
 
 export type ItemOwner = {

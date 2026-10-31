@@ -61,3 +61,48 @@ export async function listItems(userId: number, { query, category, page, limit }
 
   return { data, page, totalPages: Math.ceil(total / limit), total };
 }
+
+// Elimina lógicamente un ítem propio (HU-15).
+// - Bloquea si hay una propuesta ACEPTADA en curso (→ 409).
+// - Cancela todas las propuestas PENDIENTES sobre el ítem.
+// - Marca el ítem como ELIMINADO (borrado lógico para conservar el historial de calificaciones).
+export async function deleteItem(itemId: number, requesterId: number) {
+  const item = await prisma.item.findUnique({ where: { id: itemId } });
+
+  if (!item) {
+    throw AppError.notFound('No encontramos esa publicación');
+  }
+  if (item.ownerId !== requesterId) {
+    throw AppError.forbidden('Solo el dueño puede eliminar esta publicación');
+  }
+
+  // Regla de negocio: no se puede eliminar con una propuesta ACEPTADA activa.
+  const accepted = await prisma.proposal.findFirst({
+    where: {
+      OR: [{ itemSolicitadoId: itemId }, { itemOfrecidoId: itemId }],
+      estado: 'ACEPTADA',
+    },
+  });
+  if (accepted) {
+    throw new AppError(
+      409,
+      'PROPOSAL_ACCEPTED',
+      'No podés eliminar este ítem porque tiene una propuesta aceptada en curso'
+    );
+  }
+
+  // Cancelar propuestas PENDIENTES y marcar el ítem como ELIMINADO en una transacción.
+  await prisma.$transaction([
+    prisma.proposal.updateMany({
+      where: {
+        OR: [{ itemSolicitadoId: itemId }, { itemOfrecidoId: itemId }],
+        estado: 'PENDIENTE',
+      },
+      data: { estado: 'CANCELADA' },
+    }),
+    prisma.item.update({
+      where: { id: itemId },
+      data: { estado: 'ELIMINADO' },
+    }),
+  ]);
+}
