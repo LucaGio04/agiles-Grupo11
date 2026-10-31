@@ -36,6 +36,7 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<ItemsPage />} />
           <Route path="/items/:id" element={<ItemDetailPage />} />
+          <Route path="/items/:id/editar" element={<PublicarPage />} />
           <Route path="/publicar" element={<PublicarPage />} />
           <Route path="/propuestas" element={<PropuestasPage />} />
           <Route path="/perfil" element={<PerfilPage />} />

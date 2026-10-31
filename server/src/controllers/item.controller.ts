@@ -20,3 +20,9 @@ export const remove: RequestHandler = async (req, res) => {
   await itemService.deleteItem(Number(req.params.id), req.user!.id);
   res.status(204).end();
 };
+
+// Edita una publicación propia (HU-14).
+export const update: RequestHandler = async (req, res) => {
+  const item = await itemService.updateItem(Number(req.params.id), req.user!.id, req.body);
+  res.json({ item });
+};

@@ -1,7 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '../generated/prisma/client.js';
-import type { CreateItemInput, ListItemsQuery } from '../schemas/item.schema.js';
+import type { CreateItemInput, ListItemsQuery, UpdateItemInput } from '../schemas/item.schema.js';
 import { reputacionDe } from './reputation.js';
 
 // Publica un ítem nuevo del usuario logueado (HU-03). Arranca siempre DISPONIBLE (default del modelo).
@@ -105,4 +105,32 @@ export async function deleteItem(itemId: number, requesterId: number) {
       data: { estado: 'ELIMINADO' },
     }),
   ]);
+}
+
+// Edita una publicación propia (HU-14).
+// - Solo el dueño puede editar (→ 403).
+// - No se puede editar un ítem INTERCAMBIADO (→ 400).
+// - Permite pausar y reactivar cambiando el estado entre DISPONIBLE y PAUSADO.
+export async function updateItem(id: number, userId: number, data: UpdateItemInput) {
+  const item = await prisma.item.findUnique({ where: { id } });
+  if (!item) {
+    throw AppError.notFound('No encontramos esa publicación');
+  }
+
+  if (item.ownerId !== userId) {
+    throw AppError.forbidden('Solo el dueño puede editar esta publicación');
+  }
+
+  if (item.estado === 'INTERCAMBIADO') {
+    throw AppError.badRequest('No podés editar una publicación que ya fue intercambiada');
+  }
+
+  if ((item.estado as string) === 'ELIMINADO') {
+    throw AppError.badRequest('No podés editar una publicación eliminada');
+  }
+
+  return prisma.item.update({
+    where: { id },
+    data,
+  });
 }

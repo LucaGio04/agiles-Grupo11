@@ -424,7 +424,7 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/items/7",
-            "description": "Elimina l�gicamente una publicaci�n propia (HU-15). Requiere token y ser el due�o del �tem.\n\n- Pasa el estado del �tem a ELIMINADO para conservar el historial de calificaciones.\n- Cancela todas las propuestas PENDIENTES asociadas al �tem.\n- Si el �tem tiene una propuesta ACEPTADA en curso, responde 409 y bloquea la eliminaci�n.\n\nRespuestas:\n- 204 No Content � publicaci�n eliminada con �xito\n- 400 VALIDATION_ERROR � id de �tem inv�lido\n- 401 UNAUTHORIZED � sin token o token vencido\n- 403 FORBIDDEN � el usuario no es el due�o de la publicaci�n\n- 404 NOT_FOUND � publicaci�n inexistente\n- 409 PROPOSAL_ACCEPTED � tiene una propuesta aceptada en curso",
+            "description": "Elimina lógicamente una publicación propia (HU-15). Requiere token y ser el dueño del ítem.\n\n- Pasa el estado del ítem a ELIMINADO para conservar el historial de calificaciones.\n- Cancela todas las propuestas PENDIENTES asociadas al ítem.\n- Si el ítem tiene una propuesta ACEPTADA en curso, responde 409 y bloquea la eliminación.\n\nRespuestas:\n- 204 No Content — publicación eliminada con éxito\n- 400 VALIDATION_ERROR — id de ítem inválido\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño de la publicación\n- 404 NOT_FOUND — publicación inexistente\n- 409 PROPOSAL_ACCEPTED — tiene una propuesta aceptada en curso",
             "auth": {
               "bearer": [
                 {
@@ -436,20 +436,20 @@
               "type": "bearer"
             }
           },
-          "name": "Eliminar publicaci�n",
+          "name": "Eliminar publicación",
           "response": [
             {
               "body": "",
               "status": "No Content",
               "code": 204,
-              "name": "204 - Publicaci�n eliminada",
+              "name": "204 - Publicación eliminada",
               "header": []
             },
             {
-              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo el due�o puede eliminar esta publicaci�n\"\n  }\n}",
+              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo el dueño puede eliminar esta publicación\"\n  }\n}",
               "status": "Forbidden",
               "code": 403,
-              "name": "403 - No es el due�o",
+              "name": "403 - No es el dueño",
               "header": [
                 {
                   "key": "Content-Type",
@@ -458,10 +458,88 @@
               ]
             },
             {
-              "body": "{\n  \"error\": {\n    \"code\": \"PROPOSAL_ACCEPTED\",\n    \"message\": \"No pod�s eliminar este �tem porque tiene una propuesta aceptada en curso\"\n  }\n}",
+              "body": "{\n  \"error\": {\n    \"code\": \"PROPOSAL_ACCEPTED\",\n    \"message\": \"No podés eliminar este ítem porque tiene una propuesta aceptada en curso\"\n  }\n}",
               "status": "Conflict",
               "code": 409,
               "name": "409 - Propuesta aceptada en curso",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\\n  \"titulo\": \"Calculadora Casio fx-82 Plus\",\\n  \"descripcion\": \"Incluye funda protectora y manual\",\\n  \"categoria\": \"CALCULADORA\",\\n  \"estadoConservacion\": \"BUENO\",\\n  \"materia\": \"Física I\",\\n  \"estado\": \"PAUSADO\"\\n}",
+              "mode": "raw"
+            },
+            "description": "Edita los datos de una publicación propia o cambia su estado (HU-14). Requiere token y ser el dueño del ítem.\n\nBody: campos opcionales { titulo?, descripcion?, categoria?, estadoConservacion?, materia?, fotoUrl?, estado? }.\n- titulo: 3 a 80 caracteres.\n- descripcion: hasta 500 caracteres, o null para quitarla.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- materia: hasta 80 caracteres, o null para quitarla.\n- fotoUrl: URL válida o null para quitarla.\n- estado: DISPONIBLE | PAUSADO (permite pausar y reactivar la publicación).\n- Solo el dueño puede editar (403 si no es el dueño).\n- No se puede editar un ítem en estado INTERCAMBIADO (400).\n\nRespuestas:\n- 200 { item } — publicación actualizada\n- 400 VALIDATION_ERROR — datos inválidos o body vacío\n- 400 BAD_REQUEST — el ítem ya fue intercambiado\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño\n- 404 NOT_FOUND — publicación inexistente",
+            "auth": {
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{token}}"
+                }
+              ],
+              "type": "bearer"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "url": "{{baseUrl}}/items/7"
+          },
+          "name": "Editar publicación",
+          "response": [
+            {
+              "body": "{\\n  \"item\": {\\n    \"id\": 7,\\n    \"titulo\": \"Calculadora Casio fx-82 Plus\",\\n    \"descripcion\": \"Incluye funda protectora y manual\",\\n    \"categoria\": \"CALCULADORA\",\\n    \"estadoConservacion\": \"BUENO\",\\n    \"materia\": \"Física I\",\\n    \"fotoUrl\": \"https://example.com/casio.jpg\",\\n    \"estado\": \"PAUSADO\",\\n    \"ownerId\": 1,\\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\\n    \"updatedAt\": \"2026-10-30T17:00:00.000Z\"\\n  }\\n}",
+              "status": "OK",
+              "code": 200,
+              "name": "200 - Publicación actualizada",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\\n  \"error\": {\\n    \"code\": \"BAD_REQUEST\",\\n    \"message\": \"No podés editar una publicación que ya fue intercambiada\"\\n  }\\n}",
+              "status": "Bad Request",
+              "code": 400,
+              "name": "400 - Ítem ya intercambiado",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\\n  \"error\": {\\n    \"code\": \"FORBIDDEN\",\\n    \"message\": \"Solo el dueño puede editar esta publicación\"\\n  }\\n}",
+              "status": "Forbidden",
+              "code": 403,
+              "name": "403 - No es el dueño",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\\n  \"error\": {\\n    \"code\": \"NOT_FOUND\",\\n    \"message\": \"No encontramos esa publicación\"\\n  }\\n}",
+              "status": "Not Found",
+              "code": 404,
+              "name": "404 - Publicación inexistente",
               "header": [
                 {
                   "key": "Content-Type",
