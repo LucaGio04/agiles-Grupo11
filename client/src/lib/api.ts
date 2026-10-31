@@ -1,4 +1,6 @@
 import { tokenStorage } from '../auth/tokenStorage.ts';
+import type { EstadoItem, Item } from './items.ts';
+import type { EstadoPropuesta, Intercambio } from './proposals.ts';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -73,4 +75,20 @@ export async function apiFetch<T>(
     );
   }
   return data as T;
+}
+
+// Publicaciones del usuario logueado. Sin status trae todos los estados, pausados incluidos.
+export function getMyItems(status?: EstadoItem) {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const query = params.toString();
+  return apiFetch<{ data: Item[] }>(`/api/users/me/items${query ? `?${query}` : ''}`);
+}
+
+// Propuestas en las que participa el usuario logueado.
+export function getMyProposals(status?: EstadoPropuesta) {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const query = params.toString();
+  return apiFetch<{ data: Intercambio[] }>(`/api/proposals${query ? `?${query}` : ''}`);
 }
