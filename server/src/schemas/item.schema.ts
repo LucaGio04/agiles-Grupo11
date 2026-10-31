@@ -10,6 +10,25 @@ const optionalText = (max: number, message: string) =>
     .optional()
     .transform((value) => value || undefined);
 
+// Texto opcional en edición (HU-14): permite string no vacío, o null/vacío para borrar el campo.
+const optionalNullableText = (max: number, message: string) =>
+  z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+    z.string().trim().max(max, message).nullable().optional()
+  );
+
+// Foto opcional en edición (HU-14): URL válida o null/vacío para borrarla.
+const optionalNullablePhotoUrl = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+  z
+    .string()
+    .trim()
+    .max(500, 'La URL de la foto es demasiado larga')
+    .pipe(z.url({ protocol: /^https?$/, error: 'Ingresá una URL válida (http o https)' }))
+    .nullable()
+    .optional()
+);
+
 // El dueño no se acepta en el body: siempre es el usuario del token (regla de negocio de HU-03).
 // Zod descarta las claves desconocidas, así que un `ownerId` o `estado` enviado se ignora.
 export const createItemSchema = z.object({
@@ -29,6 +48,35 @@ export const createItemSchema = z.object({
 });
 
 export type CreateItemInput = z.infer<typeof createItemSchema>;
+
+// Edición de un ítem propio (HU-14). Todos los campos son opcionales pero debe enviarse al menos uno.
+// Permite pausar/reactivar la publicación alternando estado entre DISPONIBLE y PAUSADO.
+export const updateItemSchema = z
+  .object({
+    titulo: z
+      .string({ error: 'Ingresá un título' })
+      .trim()
+      .min(3, 'El título debe tener al menos 3 caracteres')
+      .max(80, 'El título puede tener hasta 80 caracteres')
+      .optional(),
+    descripcion: optionalNullableText(500, 'La descripción puede tener hasta 500 caracteres'),
+    categoria: z.enum(Categoria, { error: 'Elegí una categoría' }).optional(),
+    estadoConservacion: z
+      .enum(EstadoConservacion, { error: 'Elegí el estado de conservación' })
+      .optional(),
+    materia: optionalNullableText(80, 'La materia puede tener hasta 80 caracteres'),
+    fotoUrl: optionalNullablePhotoUrl,
+    estado: z
+      .enum(['DISPONIBLE', 'PAUSADO'], {
+        error: 'El estado solo puede ser DISPONIBLE o PAUSADO',
+      })
+      .optional(),
+  })
+  .refine((data) => Object.values(data).some((v) => v !== undefined), {
+    message: 'Tenés que enviar al menos un campo para actualizar',
+  });
+
+export type UpdateItemInput = z.infer<typeof updateItemSchema>;
 
 const INVALID_ITEM_ID = 'El id del ítem no es válido';
 

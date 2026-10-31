@@ -514,6 +514,96 @@
               ]
             }
           ]
+        },
+        {
+          "request": {
+            "body": {
+              "raw": "{\n  \"titulo\": \"Calculadora Casio fx-82 Plus\",\n  \"descripcion\": \"Incluye funda protectora y manual\",\n  \"categoria\": \"CALCULADORA\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Física I\",\n  \"estado\": \"PAUSADO\"\n}",
+              "mode": "raw"
+            },
+            "description": "Edita los datos de una publicación propia o cambia su estado (HU-14). Requiere token y ser el dueño del ítem.\n\nBody: campos opcionales { titulo?, descripcion?, categoria?, estadoConservacion?, materia?, fotoUrl?, estado? }.\n- titulo: 3 a 80 caracteres.\n- descripcion: hasta 500 caracteres, o null para quitarla.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- materia: hasta 80 caracteres, o null para quitarla.\n- fotoUrl: URL válida o null para quitarla.\n- estado: DISPONIBLE | PAUSADO (permite pausar y reactivar la publicación).\n- Solo el dueño puede editar (403 si no es el dueño).\n- No se puede editar un ítem en estado INTERCAMBIADO (400).\n\nRespuestas:\n- 200 { item } — publicación actualizada\n- 400 VALIDATION_ERROR — datos inválidos o body vacío\n- 400 BAD_REQUEST — el ítem ya fue intercambiado\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño\n- 404 NOT_FOUND — publicación inexistente\n\nUn ítem RESERVADO se puede corregir, pero enviar estado responde 409 CONFLICT. Un ítem eliminado responde 404 NOT_FOUND.",
+            "auth": {
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{token}}"
+                }
+              ],
+              "type": "bearer"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "url": "{{baseUrl}}/items/7"
+          },
+          "name": "Editar publicación",
+          "response": [
+            {
+              "body": "{\n  \"item\": {\n    \"id\": 7,\n    \"titulo\": \"Calculadora Casio fx-82 Plus\",\n    \"descripcion\": \"Incluye funda protectora y manual\",\n    \"categoria\": \"CALCULADORA\",\n    \"estadoConservacion\": \"BUENO\",\n    \"materia\": \"Física I\",\n    \"fotoUrl\": \"https://example.com/casio.jpg\",\n    \"estado\": \"PAUSADO\",\n    \"ownerId\": 1,\n    \"createdAt\": \"2026-10-25T15:00:00.000Z\",\n    \"updatedAt\": \"2026-10-30T17:00:00.000Z\"\n  }\n}",
+              "status": "OK",
+              "code": 200,
+              "name": "200 - Publicación actualizada",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"BAD_REQUEST\",\n    \"message\": \"No podés editar una publicación que ya fue intercambiada\"\n  }\n}",
+              "status": "Bad Request",
+              "code": 400,
+              "name": "400 - Ítem ya intercambiado",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo el dueño puede editar esta publicación\"\n  }\n}",
+              "status": "Forbidden",
+              "code": 403,
+              "name": "403 - No es el dueño",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}",
+              "status": "Not Found",
+              "code": 404,
+              "name": "404 - Publicación inexistente",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"No podés pausar ni reactivar una publicación reservada\"\n  }\n}",
+              "status": "Conflict",
+              "code": 409,
+              "name": "409 - Ítem reservado",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ]
         }
       ]
     },

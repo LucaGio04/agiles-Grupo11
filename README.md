@@ -139,6 +139,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                           |
 | POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                   |
 | GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno o un `ELIMINADO` responde 404 |
+| PATCH  | `/api/items/:id`      | Sí   | Edita un ítem propio, o lo pausa y reactiva: `{ item }` (HU-14)                                            |
 | DELETE | `/api/items/:id`      | Sí   | Elimina lógicamente un ítem propio y cancela sus propuestas pendientes: 204 (HU-15)                        |
 | POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                                |
 | GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                              |
@@ -227,15 +228,16 @@ Un id que no existe responde 404. Un id inválido responde 400. Sin token respon
 
 ## Frontend: rutas y sesión
 
-| Ruta            | Acceso     | Pantalla                                                                                     |
-| --------------- | ---------- | -------------------------------------------------------------------------------------------- |
-| `/`             | Con sesión | Inicio: listado con búsqueda (`?q=`), categoría (`?categoria=`) y páginas (`?page=`) (HU-04) |
-| `/login`        | Sin sesión | Inicio de sesión, con link a "Crear cuenta"                                                  |
-| `/registro`     | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
-| `/publicar`     | Con sesión | Formulario para publicar un material (HU-03)                                                 |
-| `/items/:id`    | Con sesión | Detalle de una publicación (HU-05)                                                           |
-| `/perfil`       | Con sesión | Datos personales, publicaciones por estado e historial de intercambios                       |
-| `/usuarios/:id` | Con sesión | Perfil público de quien publicó un ítem: reputación, intercambios e ítems disponibles        |
+| Ruta                | Acceso     | Pantalla                                                                                     |
+| ------------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| `/`                 | Con sesión | Inicio: listado con búsqueda (`?q=`), categoría (`?categoria=`) y páginas (`?page=`) (HU-04) |
+| `/login`            | Sin sesión | Inicio de sesión, con link a "Crear cuenta"                                                  |
+| `/registro`         | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
+| `/publicar`         | Con sesión | Formulario para publicar un material (HU-03)                                                 |
+| `/items/:id`        | Con sesión | Detalle de una publicación (HU-05)                                                           |
+| `/items/:id/editar` | Con sesión | Editar, pausar o reactivar una publicación propia (HU-14)                                    |
+| `/perfil`           | Con sesión | Datos personales, publicaciones por estado e historial de intercambios                       |
+| `/usuarios/:id`     | Con sesión | Perfil público de quien publicó un ítem: reputación, intercambios e ítems disponibles        |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen anidándolas bajo `<PrivateRoute>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 
@@ -286,6 +288,8 @@ Los tokens se generan con `signToken({ id, email })` de `lib/jwt.ts`. Sin token,
 | Acción sobre un recurso ajeno           | 403    | `FORBIDDEN`           |
 | Ruta inexistente                        | 404    | `NOT_FOUND`           |
 | Eliminar un ítem con propuesta aceptada | 409    | `PROPOSAL_ACCEPTED`   |
+| Editar un ítem ya intercambiado         | 400    | `BAD_REQUEST`         |
+| Pausar o reactivar un ítem reservado    | 409    | `CONFLICT`            |
 | Eliminar un ítem ya intercambiado       | 409    | `CONFLICT`            |
 | Error no controlado                     | 500    | `INTERNAL_ERROR`      |
 

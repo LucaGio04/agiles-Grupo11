@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
+import { useAuth } from '../auth/useAuth.ts';
 import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Input } from '../components/ui/Input.tsx';
+import { Loader } from '../components/ui/Loader.tsx';
 import { ApiError, apiFetch } from '../lib/api.ts';
 import {
   CATEGORIAS,
@@ -10,7 +12,10 @@ import {
   type Categoria,
   type CreateItemData,
   type EstadoConservacion,
+  type EstadoItem,
   type Item,
+  type ItemDetail,
+  type UpdateItemData,
 } from '../lib/items.ts';
 import { PHOTO_ACCEPT, PHOTO_MAX_BYTES, uploadPhoto, validatePhoto } from '../lib/uploads.ts';
 
@@ -19,24 +24,75 @@ type FieldErrors = Partial<Record<Field, string>>;
 
 const DESCRIPCION_MAX = 500;
 
-// Formulario para publicar un material (HU-03) con foto opcional (HU-13).
+// Formulario para publicar (HU-03) y editar (HU-14) un material, con foto opcional (HU-13).
 // La ruta ya está protegida por PrivateRoute.
 export function PublicarPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const isEditing = Boolean(id);
+  const { user } = useAuth();
+
+  const [loadingItem, setLoadingItem] = useState(isEditing);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [titulo, setTitulo] = useState('');
   const [categoria, setCategoria] = useState<Categoria | ''>('');
   const [estadoConservacion, setEstadoConservacion] = useState<EstadoConservacion | ''>('');
   const [descripcion, setDescripcion] = useState('');
   const [materia, setMateria] = useState('');
-  // Foto elegida y su vista previa local. La subida al servidor recién ocurre al publicar.
+  const [isPaused, setIsPaused] = useState(false);
+  const [estadoOriginal, setEstadoOriginal] = useState<EstadoItem | null>(null);
+
+  // Foto existente en el servidor (en modo edición).
+  const [currentFotoUrl, setCurrentFotoUrl] = useState<string | null>(null);
+
+  // Foto nueva elegida y su vista previa local. La subida al servidor recién ocurre al guardar.
   const [foto, setFoto] = useState<{ file: File; previewUrl: string } | null>(null);
   const fotoInput = useRef<HTMLInputElement>(null);
-  // Última foto ya subida: si la publicación falla y el usuario reintenta, no se vuelve a subir.
+  // Última foto ya subida: si la petición falla y el usuario reintenta, no se vuelve a subir.
   const uploadedFoto = useRef<{ file: File; url: string } | null>(null);
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // En modo edición, cargamos la publicación existente.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    apiFetch<ItemDetail>(`/api/items/${id}`)
+      .then(({ item }) => {
+        if (cancelled) return;
+        if (user && item.ownerId !== user.id) {
+          setLoadError('Solo el dueño puede editar esta publicación.');
+          return;
+        }
+        if (item.estado === 'INTERCAMBIADO') {
+          setLoadError('Esta publicación ya fue intercambiada y no puede modificarse.');
+          return;
+        }
+        setTitulo(item.titulo);
+        setCategoria(item.categoria);
+        setEstadoConservacion(item.estadoConservacion);
+        setDescripcion(item.descripcion ?? '');
+        setMateria(item.materia ?? '');
+        setCurrentFotoUrl(item.fotoUrl);
+        setIsPaused(item.estado === 'PAUSADO');
+        setEstadoOriginal(item.estado);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(err instanceof ApiError ? err.message : 'No se pudo cargar la publicación.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingItem(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user]);
 
   // Libera la vista previa anterior cuando cambia la foto y al salir de la página.
   useEffect(
@@ -70,7 +126,7 @@ export function PublicarPage() {
     clearError('foto');
   }
 
-  function removeFoto() {
+  function removeNewFoto() {
     clearFotoInput();
     setFoto(null);
     clearError('foto');
@@ -103,24 +159,44 @@ export function PublicarPage() {
     setSubmitting(true);
 
     try {
-      let fotoUrl: string | undefined;
+      let finalFotoUrl: string | null | undefined = currentFotoUrl;
       if (foto) {
         if (uploadedFoto.current?.file !== foto.file) {
           uploadedFoto.current = { file: foto.file, url: await uploadPhoto(foto.file) };
         }
-        fotoUrl = uploadedFoto.current.url;
+        finalFotoUrl = uploadedFoto.current.url;
       }
 
-      const body: CreateItemData = {
-        titulo: titulo.trim(),
-        categoria: categoria as Categoria,
-        estadoConservacion: estadoConservacion as EstadoConservacion,
-        descripcion: descripcion.trim() || undefined,
-        materia: materia.trim() || undefined,
-        fotoUrl,
-      };
-      const { item } = await apiFetch<{ item: Item }>('/api/items', { method: 'POST', body });
-      navigate(`/items/${item.id}`, { state: { flash: '¡Listo! Tu material ya está publicado.' } });
+      if (isEditing) {
+        const nuevoEstado = isPaused ? 'PAUSADO' : 'DISPONIBLE';
+        const body: UpdateItemData = {
+          titulo: titulo.trim(),
+          categoria: categoria as Categoria,
+          estadoConservacion: estadoConservacion as EstadoConservacion,
+          descripcion: descripcion.trim() || null,
+          materia: materia.trim() || null,
+          fotoUrl: finalFotoUrl ?? null,
+          // El estado solo se manda si se pausó o reactivó: un ítem RESERVADO no se pisa.
+          ...(estadoOriginal !== 'RESERVADO' && nuevoEstado !== estadoOriginal
+            ? { estado: nuevoEstado }
+            : {}),
+        };
+        await apiFetch<{ item: Item }>(`/api/items/${id}`, { method: 'PATCH', body });
+        navigate(`/items/${id}`, { state: { flash: '¡Listo! Los cambios fueron guardados.' } });
+      } else {
+        const body: CreateItemData = {
+          titulo: titulo.trim(),
+          categoria: categoria as Categoria,
+          estadoConservacion: estadoConservacion as EstadoConservacion,
+          descripcion: descripcion.trim() || undefined,
+          materia: materia.trim() || undefined,
+          fotoUrl: finalFotoUrl || undefined,
+        };
+        const { item } = await apiFetch<{ item: Item }>('/api/items', { method: 'POST', body });
+        navigate(`/items/${item.id}`, {
+          state: { flash: '¡Listo! Tu material ya está publicado.' },
+        });
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 400 && Array.isArray(err.details)) {
@@ -140,15 +216,52 @@ export function PublicarPage() {
     }
   }
 
+  if (loadingItem) {
+    return <Loader label="Cargando publicación..." />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="publish-page">
+        <ErrorMessage message={loadError} />
+        <div className="publish-actions publish-load-actions">
+          <Button variant="secondary" onClick={() => navigate(-1)}>
+            Volver
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="publish-page">
-      <h1>Publicar material</h1>
+      <h1>{isEditing ? 'Editar publicación' : 'Publicar material'}</h1>
       <p className="subtitle">
-        Contá qué querés intercambiar para que otros estudiantes lo encuentren.
+        {isEditing
+          ? 'Modificá los datos de tu material o cambiá su estado.'
+          : 'Contá qué querés intercambiar para que otros estudiantes lo encuentren.'}
       </p>
 
       <form className="publish-form" onSubmit={handleSubmit} noValidate>
         {generalError && <ErrorMessage message={generalError} />}
+
+        {isEditing && estadoOriginal !== 'RESERVADO' && (
+          <div className="card publish-pause">
+            <label className="publish-pause-label">
+              <input
+                type="checkbox"
+                checked={isPaused}
+                onChange={(e) => setIsPaused(e.target.checked)}
+              />
+              <span>Pausar publicación</span>
+            </label>
+            <span className="field-hint">
+              {isPaused
+                ? 'Tu publicación está pausada: no aparecerá en búsquedas ni listados hasta que la reactives.'
+                : 'Tu publicación está activa y visible para recibir propuestas de intercambio.'}
+            </span>
+          </div>
+        )}
 
         <Input
           label="Título"
@@ -284,10 +397,29 @@ export function PublicarPage() {
             </span>
           )}
         </label>
+
+        {/* Foto existente en edición (si no se seleccionó una nueva) */}
+        {!foto && currentFotoUrl && (
+          <div className="publish-photo">
+            <img className="publish-preview" src={currentFotoUrl} alt="Foto actual del ítem" />
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCurrentFotoUrl(null);
+                clearFotoInput();
+              }}
+              disabled={submitting}
+            >
+              Quitar foto
+            </Button>
+          </div>
+        )}
+
+        {/* Foto nueva seleccionada */}
         {foto && (
           <div className="publish-photo">
             <img className="publish-preview" src={foto.previewUrl} alt="Vista previa de la foto" />
-            <Button variant="secondary" onClick={removeFoto} disabled={submitting}>
+            <Button variant="secondary" onClick={removeNewFoto} disabled={submitting}>
               Quitar foto
             </Button>
           </div>
@@ -298,7 +430,7 @@ export function PublicarPage() {
             Cancelar
           </Button>
           <Button type="submit" loading={submitting}>
-            Publicar
+            {isEditing ? 'Guardar cambios' : 'Publicar'}
           </Button>
         </div>
       </form>

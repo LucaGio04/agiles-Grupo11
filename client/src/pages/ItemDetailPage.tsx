@@ -226,8 +226,16 @@ export function ItemDetailPage() {
         <div className="item-detail-actions">
           {isMine ? (
             <>
-              {/* Editar llega con HU-14. */}
-              <Button variant="secondary" disabled title="Próximamente">
+              <Button
+                variant="secondary"
+                onClick={() => navigate(`/items/${item.id}/editar`)}
+                disabled={item.estado === 'INTERCAMBIADO'}
+                title={
+                  item.estado === 'INTERCAMBIADO'
+                    ? 'No se puede editar un ítem intercambiado'
+                    : undefined
+                }
+              >
                 Editar
               </Button>
               <Button
@@ -254,7 +262,6 @@ export function ItemDetailPage() {
               propuestas.
             </p>
           )}
-          {isMine && <span className="field-hint">Editar va a estar disponible muy pronto.</span>}
           {!isMine && disponible && (
             <span className="field-hint">
               Las propuestas de intercambio van a estar disponibles muy pronto.

@@ -15,6 +15,12 @@ export const list: RequestHandler = async (req, res) => {
   res.json(await itemService.listItems(req.user!.id, req.query as unknown as ListItemsQuery));
 };
 
+// Edita una publicación propia (HU-14).
+export const update: RequestHandler = async (req, res) => {
+  const item = await itemService.updateItem(Number(req.params.id), req.user!.id, req.body);
+  res.json({ item });
+};
+
 // Elimina lógicamente el ítem propio (HU-15). Responde 204 sin cuerpo en caso de éxito.
 export const remove: RequestHandler = async (req, res) => {
   await itemService.deleteItem(Number(req.params.id), req.user!.id);
