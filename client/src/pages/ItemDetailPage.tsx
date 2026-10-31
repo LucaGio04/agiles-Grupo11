@@ -144,7 +144,7 @@ export function ItemDetailPage() {
           </span>
           <div className="owner-info">
             <p className="owner-name">
-              {owner.nombre}
+              <Link to={`/usuarios/${owner.id}`}>{owner.nombre}</Link>
               {isMine && <span className="muted"> (vos)</span>}
             </p>
             <p className="muted">{owner.carrera}</p>

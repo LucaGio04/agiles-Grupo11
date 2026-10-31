@@ -128,18 +128,19 @@ npm run dev -w client
 
 La colección de Postman con todos los endpoints, ejemplos y respuestas está en [`docs/postman/TruequeUTN.postman_collection.json`](docs/postman/TruequeUTN.postman_collection.json) (en Postman: _File → Import_). El request de login guarda el token para usarlo en los endpoints protegidos.
 
-| Método | Ruta                  | Auth | Descripción                                                                                 |
-| ------ | --------------------- | ---- | ------------------------------------------------------------------------------------------- |
-| GET    | `/api/health`         | No   | Estado del server                                                                           |
-| POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                    |
-| POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                   |
-| GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                |
-| GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                            |
-| POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                    |
-| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno responde 404   |
-| POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                 |
-| GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados               |
-| GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones |
+| Método | Ruta                  | Auth | Descripción                                                                                                |
+| ------ | --------------------- | ---- | ---------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/health`         | No   | Estado del server                                                                                          |
+| POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                                   |
+| POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                                  |
+| GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                               |
+| GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                           |
+| POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                   |
+| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno responde 404                  |
+| POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                                |
+| GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                              |
+| GET    | `/api/users/:id`      | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email |
+| GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones                |
 
 `GET /api/users/me/items` usa el id del token, nunca un id de la URL. `status` tiene que ser `DISPONIBLE`, `RESERVADO`, `PAUSADO` o `INTERCAMBIADO`. Un valor inválido responde 400.
 
@@ -161,6 +162,39 @@ Authorization: Bearer <token>
   }
 }
 ```
+
+`GET /api/users/:id` devuelve el perfil público de un estudiante. El id tiene que ser un entero positivo. No incluye email ni contraseña. `reputacionPromedio` es `null` si no tiene calificaciones. `items` son solo los `DISPONIBLE`. `ultimasCalificaciones` trae como máximo 5, con el nombre de quien calificó.
+
+```http
+GET /api/users/7
+Authorization: Bearer <token>
+```
+
+```json
+{
+  "data": {
+    "id": 7,
+    "nombre": "Ana Demo",
+    "carrera": "Ingeniería en Sistemas",
+    "createdAt": "2026-03-01T12:00:00.000Z",
+    "reputacionPromedio": 4.3,
+    "cantidadResenas": 2,
+    "cantidadIntercambios": 1,
+    "items": [{ "id": 4, "titulo": "Apunte de álgebra", "estado": "DISPONIBLE", "ownerId": 7 }],
+    "ultimasCalificaciones": [
+      {
+        "id": 9,
+        "puntaje": 5,
+        "comentario": "El intercambio fue claro.",
+        "createdAt": "2026-03-01T12:00:00.000Z",
+        "evaluador": { "id": 2, "nombre": "Sofía Demo" }
+      }
+    ]
+  }
+}
+```
+
+Un id que no existe responde 404. Un id inválido responde 400. Sin token responde 401.
 
 `GET /api/proposals?status=CONCRETADA` lista solo intercambios donde el usuario es proponente o receptor. Sin `status` devuelve todos los suyos. La calificación es `null` si esa persona todavía no calificó.
 
@@ -190,14 +224,15 @@ Authorization: Bearer <token>
 
 ## Frontend: rutas y sesión
 
-| Ruta         | Acceso     | Pantalla                                                                                     |
-| ------------ | ---------- | -------------------------------------------------------------------------------------------- |
-| `/`          | Con sesión | Inicio: listado con búsqueda (`?q=`), categoría (`?categoria=`) y páginas (`?page=`) (HU-04) |
-| `/login`     | Sin sesión | Inicio de sesión, con link a "Crear cuenta"                                                  |
-| `/registro`  | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
-| `/publicar`  | Con sesión | Formulario para publicar un material (HU-03)                                                 |
-| `/items/:id` | Con sesión | Detalle de una publicación (HU-05)                                                           |
-| `/perfil`    | Con sesión | Mis publicaciones por estado e historial de intercambios concretados                         |
+| Ruta            | Acceso     | Pantalla                                                                                     |
+| --------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| `/`             | Con sesión | Inicio: listado con búsqueda (`?q=`), categoría (`?categoria=`) y páginas (`?page=`) (HU-04) |
+| `/login`        | Sin sesión | Inicio de sesión, con link a "Crear cuenta"                                                  |
+| `/registro`     | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
+| `/publicar`     | Con sesión | Formulario para publicar un material (HU-03)                                                 |
+| `/items/:id`    | Con sesión | Detalle de una publicación (HU-05)                                                           |
+| `/perfil`       | Con sesión | Mis publicaciones por estado e historial de intercambios concretados                         |
+| `/usuarios/:id` | Con sesión | Perfil público de quien publicó un ítem: reputación, intercambios e ítems disponibles        |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen anidándolas bajo `<PrivateRoute>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 
