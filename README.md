@@ -233,7 +233,7 @@ Un id que no existe responde 404. Un id inválido responde 400. Sin token respon
 | `/registro`     | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
 | `/publicar`     | Con sesión | Formulario para publicar un material (HU-03)                                                 |
 | `/items/:id`    | Con sesión | Detalle de una publicación (HU-05)                                                           |
-| `/perfil`       | Con sesión | Mis publicaciones por estado e historial de intercambios concretados                         |
+| `/perfil`       | Con sesión | Datos personales, publicaciones por estado e historial de intercambios                       |
 | `/usuarios/:id` | Con sesión | Perfil público de quien publicó un ítem: reputación, intercambios e ítems disponibles        |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen anidándolas bajo `<PrivateRoute>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
