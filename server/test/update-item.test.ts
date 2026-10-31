@@ -154,6 +154,34 @@ describe('PATCH /api/items/:id', () => {
     assert.equal(update.mock.callCount(), 0);
   });
 
+  it('en un ítem RESERVADO se puede corregir el título y el estado no cambia', async () => {
+    currentItem.estado = 'RESERVADO';
+    const res = await patchItem(ITEM_ID, { titulo: 'Título corregido' });
+    assert.equal(res.status, 200);
+
+    const { item } = (await res.json()) as ItemResponse;
+    assert.equal(item.titulo, 'Título corregido');
+    assert.equal(item.estado, 'RESERVADO');
+  });
+
+  it('en un ítem RESERVADO enviar estado responde 409 y no modifica nada', async () => {
+    currentItem.estado = 'RESERVADO';
+    for (const estado of ['DISPONIBLE', 'PAUSADO']) {
+      const res = await patchItem(ITEM_ID, { titulo: 'Título corregido', estado });
+      assert.equal(res.status, 409);
+      const { error } = (await res.json()) as ErrorResponse;
+      assert.equal(error.code, 'CONFLICT');
+    }
+    assert.equal(update.mock.callCount(), 0);
+  });
+
+  it('un ítem ELIMINADO responde 404 y no modifica nada', async () => {
+    currentItem.estado = 'ELIMINADO';
+    const res = await patchItem(ITEM_ID, { titulo: 'Título corregido' });
+    assert.equal(res.status, 404);
+    assert.equal(update.mock.callCount(), 0);
+  });
+
   it('si la publicación no existe responde 404', async () => {
     const res = await patchItem(999, { titulo: 'No existo' });
     assert.equal(res.status, 404);

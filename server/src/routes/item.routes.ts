@@ -20,5 +20,7 @@ router.patch(
   validate({ params: itemIdParamsSchema, body: updateItemSchema }),
   itemController.update
 );
+// Elimina lógicamente el ítem propio (HU-15). Requiere ser el dueño; responde 204 en éxito.
+router.delete('/:id', requireAuth, validate({ params: itemIdParamsSchema }), itemController.remove);
 
 export default router;

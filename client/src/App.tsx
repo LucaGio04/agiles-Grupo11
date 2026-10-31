@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router';
 import { PrivateRoute, RedirectIfAuthenticated } from './auth/guards.tsx';
 import { Layout } from './components/layout/Layout.tsx';
+import { ProfileCard } from './components/profile/ProfileCard.tsx';
 import { ItemDetailPage } from './pages/ItemDetailPage.tsx';
 import { ItemsPage } from './pages/ItemsPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
@@ -9,6 +10,7 @@ import { PerfilPage } from './pages/PerfilPage.tsx';
 import { PropuestasPage } from './pages/PropuestasPage.tsx';
 import { PublicarPage } from './pages/PublicarPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
+import { UsuarioPerfilPage } from './pages/UsuarioPerfilPage.tsx';
 import './styles/ui.css';
 
 function App() {
@@ -35,10 +37,20 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<ItemsPage />} />
           <Route path="/items/:id" element={<ItemDetailPage />} />
-          <Route path="/items/:id/editar" element={<PublicarPage />} />
-          <Route path="/publicar" element={<PublicarPage />} />
+          {/* Key distinta: al pasar de editar a publicar el formulario se monta de cero. */}
+          <Route path="/items/:id/editar" element={<PublicarPage key="editar" />} />
+          <Route path="/publicar" element={<PublicarPage key="publicar" />} />
           <Route path="/propuestas" element={<PropuestasPage />} />
-          <Route path="/perfil" element={<PerfilPage />} />
+          <Route
+            path="/perfil"
+            element={
+              <>
+                <ProfileCard />
+                <PerfilPage />
+              </>
+            }
+          />
+          <Route path="/usuarios/:id" element={<UsuarioPerfilPage />} />
         </Route>
       </Route>
 

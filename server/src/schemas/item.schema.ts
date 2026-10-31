@@ -61,7 +61,9 @@ export const updateItemSchema = z
       .optional(),
     descripcion: optionalNullableText(500, 'La descripción puede tener hasta 500 caracteres'),
     categoria: z.enum(Categoria, { error: 'Elegí una categoría' }).optional(),
-    estadoConservacion: z.enum(EstadoConservacion, { error: 'Elegí el estado de conservación' }).optional(),
+    estadoConservacion: z
+      .enum(EstadoConservacion, { error: 'Elegí el estado de conservación' })
+      .optional(),
     materia: optionalNullableText(80, 'La materia puede tener hasta 80 caracteres'),
     fotoUrl: optionalNullablePhotoUrl,
     estado: z

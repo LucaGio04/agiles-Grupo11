@@ -12,6 +12,7 @@ import {
   type Categoria,
   type CreateItemData,
   type EstadoConservacion,
+  type EstadoItem,
   type Item,
   type ItemDetail,
   type UpdateItemData,
@@ -40,6 +41,7 @@ export function PublicarPage() {
   const [descripcion, setDescripcion] = useState('');
   const [materia, setMateria] = useState('');
   const [isPaused, setIsPaused] = useState(false);
+  const [estadoOriginal, setEstadoOriginal] = useState<EstadoItem | null>(null);
 
   // Foto existente en el servidor (en modo edición).
   const [currentFotoUrl, setCurrentFotoUrl] = useState<string | null>(null);
@@ -77,12 +79,11 @@ export function PublicarPage() {
         setMateria(item.materia ?? '');
         setCurrentFotoUrl(item.fotoUrl);
         setIsPaused(item.estado === 'PAUSADO');
+        setEstadoOriginal(item.estado);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setLoadError(
-          err instanceof ApiError ? err.message : 'No se pudo cargar la publicación.'
-        );
+        setLoadError(err instanceof ApiError ? err.message : 'No se pudo cargar la publicación.');
       })
       .finally(() => {
         if (!cancelled) setLoadingItem(false);
@@ -114,6 +115,7 @@ export function PublicarPage() {
 
     const problem = validatePhoto(file);
     if (problem) {
+      // Se descarta la selección para que no quede un archivo inválido en el input.
       clearFotoInput();
       setFoto(null);
       setFieldErrors((prev) => ({ ...prev, foto: problem }));
@@ -166,6 +168,7 @@ export function PublicarPage() {
       }
 
       if (isEditing) {
+        const nuevoEstado = isPaused ? 'PAUSADO' : 'DISPONIBLE';
         const body: UpdateItemData = {
           titulo: titulo.trim(),
           categoria: categoria as Categoria,
@@ -173,7 +176,10 @@ export function PublicarPage() {
           descripcion: descripcion.trim() || null,
           materia: materia.trim() || null,
           fotoUrl: finalFotoUrl ?? null,
-          estado: isPaused ? 'PAUSADO' : 'DISPONIBLE',
+          // El estado solo se manda si se pausó o reactivó: un ítem RESERVADO no se pisa.
+          ...(estadoOriginal !== 'RESERVADO' && nuevoEstado !== estadoOriginal
+            ? { estado: nuevoEstado }
+            : {}),
         };
         await apiFetch<{ item: Item }>(`/api/items/${id}`, { method: 'PATCH', body });
         navigate(`/items/${id}`, { state: { flash: '¡Listo! Los cambios fueron guardados.' } });
@@ -187,7 +193,9 @@ export function PublicarPage() {
           fotoUrl: finalFotoUrl || undefined,
         };
         const { item } = await apiFetch<{ item: Item }>('/api/items', { method: 'POST', body });
-        navigate(`/items/${item.id}`, { state: { flash: '¡Listo! Tu material ya está publicado.' } });
+        navigate(`/items/${item.id}`, {
+          state: { flash: '¡Listo! Tu material ya está publicado.' },
+        });
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -195,6 +203,7 @@ export function PublicarPage() {
           const errors: FieldErrors = {};
           for (const { field, message } of err.details as { field: string; message: string }[]) {
             const name = field.replace(/^body\./, '');
+            // Si el servidor rechaza la URL de la foto, el error se muestra en el campo de la foto.
             errors[name === 'fotoUrl' ? 'foto' : (name as Field)] ??= message;
           }
           setFieldErrors(errors);
@@ -215,7 +224,7 @@ export function PublicarPage() {
     return (
       <div className="publish-page">
         <ErrorMessage message={loadError} />
-        <div className="publish-actions" style={{ marginTop: '1.5rem' }}>
+        <div className="publish-actions publish-load-actions">
           <Button variant="secondary" onClick={() => navigate(-1)}>
             Volver
           </Button>
@@ -236,34 +245,17 @@ export function PublicarPage() {
       <form className="publish-form" onSubmit={handleSubmit} noValidate>
         {generalError && <ErrorMessage message={generalError} />}
 
-        {isEditing && (
-          <div
-            className="card"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-            }}
-          >
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                cursor: 'pointer',
-                fontWeight: 500,
-              }}
-            >
+        {isEditing && estadoOriginal !== 'RESERVADO' && (
+          <div className="card publish-pause">
+            <label className="publish-pause-label">
               <input
                 type="checkbox"
                 checked={isPaused}
                 onChange={(e) => setIsPaused(e.target.checked)}
-                style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer' }}
               />
               <span>Pausar publicación</span>
             </label>
-            <span className="field-hint" style={{ margin: 0 }}>
+            <span className="field-hint">
               {isPaused
                 ? 'Tu publicación está pausada: no aparecerá en búsquedas ni listados hasta que la reactives.'
                 : 'Tu publicación está activa y visible para recibir propuestas de intercambio.'}

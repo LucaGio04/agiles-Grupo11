@@ -2,6 +2,7 @@ import { AppError } from '../errors/AppError.js';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { CreateItemInput, ListItemsQuery, UpdateItemInput } from '../schemas/item.schema.js';
+import { reputacionDe } from './reputation.js';
 
 // Publica un ítem nuevo del usuario logueado (HU-03). Arranca siempre DISPONIBLE (default del modelo).
 export async function createItem(ownerId: number, data: CreateItemInput) {
@@ -9,28 +10,29 @@ export async function createItem(ownerId: number, data: CreateItemInput) {
 }
 
 // Detalle de un ítem con los datos públicos de su dueño y su reputación (HU-05).
-// Es visible en cualquier estado (por ejemplo RESERVADO); el front decide qué acciones mostrar.
-export async function getItemById(id: number) {
+// RESERVADO e INTERCAMBIADO se ven igual. Un PAUSADO solo lo ve el dueño:
+// para cualquier otra persona es el mismo 404 que si no existiera. Un ELIMINADO es 404 para todos.
+export async function getItemById(id: number, viewerId: number) {
   const item = await prisma.item.findUnique({
     where: { id },
     include: { owner: { select: { id: true, nombre: true, carrera: true } } },
   });
-  if (!item) {
+  if (
+    !item ||
+    item.estado === 'ELIMINADO' ||
+    (item.estado === 'PAUSADO' && item.ownerId !== viewerId)
+  ) {
     throw AppError.notFound('No encontramos esa publicación');
   }
 
-  const ratings = await prisma.rating.aggregate({
-    where: { evaluadoId: item.ownerId },
-    _avg: { puntaje: true },
-    _count: true,
-  });
+  const reputacion = await reputacionDe(item.ownerId);
 
   const { owner, ...itemData } = item;
   return {
     item: itemData,
     owner: {
       ...owner,
-      reputacion: { promedio: ratings._avg.puntaje, cantidad: ratings._count },
+      reputacion: { promedio: reputacion.promedio, cantidad: reputacion.cantidad },
     },
   };
 }
@@ -65,12 +67,14 @@ export async function listItems(userId: number, { query, category, page, limit }
 }
 
 // Edita una publicación propia (HU-14).
+// - Un ítem eliminado responde lo mismo que uno inexistente (→ 404).
 // - Solo el dueño puede editar (→ 403).
 // - No se puede editar un ítem INTERCAMBIADO (→ 400).
 // - Permite pausar y reactivar cambiando el estado entre DISPONIBLE y PAUSADO.
+// - Un ítem RESERVADO se puede corregir, pero no cambiar de estado (→ 409).
 export async function updateItem(id: number, userId: number, data: UpdateItemInput) {
   const item = await prisma.item.findUnique({ where: { id } });
-  if (!item) {
+  if (!item || item.estado === 'ELIMINADO') {
     throw AppError.notFound('No encontramos esa publicación');
   }
 
@@ -82,12 +86,61 @@ export async function updateItem(id: number, userId: number, data: UpdateItemInp
     throw AppError.badRequest('No podés editar una publicación que ya fue intercambiada');
   }
 
-  if ((item.estado as string) === 'ELIMINADO') {
-    throw AppError.badRequest('No podés editar una publicación eliminada');
+  if (item.estado === 'RESERVADO' && data.estado !== undefined) {
+    throw AppError.conflict('No podés pausar ni reactivar una publicación reservada');
   }
 
   return prisma.item.update({
     where: { id },
     data,
   });
+}
+
+// Elimina lógicamente un ítem propio (HU-15).
+// - Un ítem ya eliminado responde lo mismo que uno inexistente (→ 404).
+// - Bloquea si ya fue intercambiado o si hay una propuesta ACEPTADA en curso (→ 409).
+// - Cancela todas las propuestas PENDIENTES sobre el ítem.
+// - Marca el ítem como ELIMINADO (borrado lógico para conservar el historial de calificaciones).
+export async function deleteItem(itemId: number, requesterId: number) {
+  const item = await prisma.item.findUnique({ where: { id: itemId } });
+
+  if (!item || item.estado === 'ELIMINADO') {
+    throw AppError.notFound('No encontramos esa publicación');
+  }
+  if (item.ownerId !== requesterId) {
+    throw AppError.forbidden('Solo el dueño puede eliminar esta publicación');
+  }
+  if (item.estado === 'INTERCAMBIADO') {
+    throw AppError.conflict('No podés eliminar una publicación que ya fue intercambiada');
+  }
+
+  // Regla de negocio: no se puede eliminar con una propuesta ACEPTADA activa.
+  const accepted = await prisma.proposal.findFirst({
+    where: {
+      OR: [{ itemSolicitadoId: itemId }, { itemOfrecidoId: itemId }],
+      estado: 'ACEPTADA',
+    },
+  });
+  if (accepted) {
+    throw new AppError(
+      409,
+      'PROPOSAL_ACCEPTED',
+      'No podés eliminar este ítem porque tiene una propuesta aceptada en curso'
+    );
+  }
+
+  // Cancelar propuestas PENDIENTES y marcar el ítem como ELIMINADO en una transacción.
+  await prisma.$transaction([
+    prisma.proposal.updateMany({
+      where: {
+        OR: [{ itemSolicitadoId: itemId }, { itemOfrecidoId: itemId }],
+        estado: 'PENDIENTE',
+      },
+      data: { estado: 'CANCELADA' },
+    }),
+    prisma.item.update({
+      where: { id: itemId },
+      data: { estado: 'ELIMINADO' },
+    }),
+  ]);
 }

@@ -7,7 +7,7 @@ export const create: RequestHandler = async (req, res) => {
 };
 
 export const getById: RequestHandler = async (req, res) => {
-  res.json(await itemService.getItemById(Number(req.params.id)));
+  res.json(await itemService.getItemById(Number(req.params.id), req.user!.id));
 };
 
 export const list: RequestHandler = async (req, res) => {
@@ -19,4 +19,10 @@ export const list: RequestHandler = async (req, res) => {
 export const update: RequestHandler = async (req, res) => {
   const item = await itemService.updateItem(Number(req.params.id), req.user!.id, req.body);
   res.json({ item });
+};
+
+// Elimina lógicamente el ítem propio (HU-15). Responde 204 sin cuerpo en caso de éxito.
+export const remove: RequestHandler = async (req, res) => {
+  await itemService.deleteItem(Number(req.params.id), req.user!.id);
+  res.status(204).end();
 };

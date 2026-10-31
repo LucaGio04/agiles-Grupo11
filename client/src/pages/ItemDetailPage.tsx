@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../auth/useAuth.ts';
 import { ItemPhoto } from '../components/items/ItemPhoto.tsx';
@@ -38,6 +38,57 @@ function Reputacion({ reputacion }: { reputacion: ItemOwner['reputacion'] }) {
   );
 }
 
+// Modal de confirmación para eliminar un ítem (HU-15).
+function DeleteModal({
+  onConfirm,
+  onCancel,
+  loading,
+  error,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+  error: string | null;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // Cierra el modal al hacer clic en el backdrop (fuera del recuadro blanco).
+  function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
+    if (e.target === dialogRef.current) onCancel();
+  }
+
+  return (
+    <dialog
+      ref={dialogRef}
+      open
+      className="modal-backdrop"
+      onClick={handleBackdropClick}
+      aria-labelledby="delete-modal-title"
+      aria-describedby="delete-modal-desc"
+    >
+      <div className="modal" role="document">
+        <h2 id="delete-modal-title">¿Eliminar publicación?</h2>
+        <p id="delete-modal-desc">
+          Las propuestas pendientes quedarán canceladas. Esta acción no se puede deshacer.
+        </p>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="modal-actions">
+          <Button variant="secondary" onClick={onCancel} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={onConfirm} loading={loading}>
+            Eliminar
+          </Button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
 // Detalle de una publicación (HU-05).
 export function ItemDetailPage() {
   const { id } = useParams();
@@ -45,6 +96,11 @@ export function ItemDetailPage() {
   const navigate = useNavigate();
   const flash = (useLocation().state as { flash?: string } | null)?.flash;
   const [result, setResult] = useState<(Result & { forId: string }) | null>(null);
+
+  // Estado del modal de eliminación (HU-15).
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +126,20 @@ export function ItemDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await apiFetch(`/api/items/${id}`, { method: 'DELETE' });
+      navigate('/', { state: { flash: 'Tu publicación fue eliminada.' } });
+    } catch (err) {
+      setDeleteError(
+        err instanceof ApiError ? err.message : 'No se pudo eliminar. Intentá de nuevo.'
+      );
+      setDeleting(false);
+    }
+  }
 
   if (!result || result.forId !== id) return <Loader label="Cargando publicación..." />;
   const state = result;
@@ -145,7 +215,7 @@ export function ItemDetailPage() {
           </span>
           <div className="owner-info">
             <p className="owner-name">
-              {owner.nombre}
+              <Link to={`/usuarios/${owner.id}`}>{owner.nombre}</Link>
               {isMine && <span className="muted"> (vos)</span>}
             </p>
             <p className="muted">{owner.carrera}</p>
@@ -156,7 +226,6 @@ export function ItemDetailPage() {
         <div className="item-detail-actions">
           {isMine ? (
             <>
-              {/* Editar llega con HU-14. Eliminar llega con HU-15. */}
               <Button
                 variant="secondary"
                 onClick={() => navigate(`/items/${item.id}/editar`)}
@@ -169,7 +238,16 @@ export function ItemDetailPage() {
               >
                 Editar
               </Button>
-              <Button variant="danger" disabled title="Próximamente">
+              <Button
+                variant="danger"
+                onClick={() => setShowDeleteModal(true)}
+                disabled={item.estado === 'INTERCAMBIADO'}
+                title={
+                  item.estado === 'INTERCAMBIADO'
+                    ? 'No se puede eliminar un ítem intercambiado'
+                    : undefined
+                }
+              >
                 Eliminar
               </Button>
             </>
@@ -184,9 +262,6 @@ export function ItemDetailPage() {
               propuestas.
             </p>
           )}
-          {isMine && item.estado !== 'INTERCAMBIADO' && (
-            <span className="field-hint">Eliminar va a estar disponible muy pronto.</span>
-          )}
           {!isMine && disponible && (
             <span className="field-hint">
               Las propuestas de intercambio van a estar disponibles muy pronto.
@@ -194,6 +269,18 @@ export function ItemDetailPage() {
           )}
         </div>
       </div>
+
+      {showDeleteModal && (
+        <DeleteModal
+          onConfirm={handleDelete}
+          onCancel={() => {
+            setShowDeleteModal(false);
+            setDeleteError(null);
+          }}
+          loading={deleting}
+          error={deleteError}
+        />
+      )}
     </article>
   );
 }
