@@ -2,19 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../auth/useAuth.ts';
 import { ApiError } from '../lib/api.ts';
-
-const CARRERAS_UTN = [
-  'Ingeniería en Sistemas de Información',
-  'Ingeniería Química',
-  'Ingeniería Mecánica',
-  'Ingeniería Eléctrica',
-  'Ingeniería Electrónica',
-  'Ingeniería Civil',
-  'Ingeniería Industrial',
-  'Licenciatura en Organización Industrial',
-  'Tecnicatura Universitaria en Programación',
-  'Otra carrera UTN',
-];
+import { CARRERAS_UTN } from '../lib/carreras.ts';
 
 type FieldErrors = {
   nombre?: string;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { ItemCard } from '../components/items/ItemCard.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
@@ -24,6 +24,7 @@ function isCategoria(value: string | null): value is Categoria {
 // "atrás" del navegador y un link compartido muestran lo mismo.
 export function ItemsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const flash = (useLocation().state as { flash?: string } | null)?.flash;
   const q = (searchParams.get('q') ?? '').trim().slice(0, MAX_QUERY_LENGTH).trim();
   const rawCategoria = searchParams.get('categoria');
   const categoria = isCategoria(rawCategoria) ? rawCategoria : null;
@@ -88,6 +89,12 @@ export function ItemsPage() {
 
   return (
     <section className="items-page">
+      {flash && (
+        <p className="form-success" role="status">
+          {flash}
+        </p>
+      )}
+
       <header className="items-header">
         <h1>{q ? `Resultados para “${q}”` : 'Materiales disponibles'}</h1>
         {!loading && result.status === 'ok' && result.data.total > 0 && (

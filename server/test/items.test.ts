@@ -211,6 +211,53 @@ describe('GET /api/items/:id', () => {
     assert.equal(body.item.estado, 'RESERVADO');
   });
 
+  it('un ítem PAUSADO de otro usuario responde 404 y el dueño sí lo ve', async () => {
+    const previous = {
+      estado: storedItem.estado,
+      ownerId: storedItem.ownerId,
+      owner: storedItem.owner,
+    };
+    storedItem.estado = 'PAUSADO';
+    storedItem.ownerId = 2;
+    storedItem.owner = { id: 2, nombre: 'Sofía Demo', carrera: 'Ingeniería en Sistemas' };
+
+    try {
+      const hidden = await getItem('7');
+      assert.equal(hidden.status, 404);
+      const hiddenBody = (await hidden.json()) as ErrorResponse;
+      assert.equal(hiddenBody.error.code, 'NOT_FOUND');
+      assert.equal(hiddenBody.error.message, 'No encontramos esa publicación');
+
+      const ownerToken = signToken({ id: 2, email: 'sofia.demo@utn.edu.ar' });
+      const visible = await getItem('7', ownerToken);
+      assert.equal(visible.status, 200);
+      const body = (await visible.json()) as { item: { estado: string; ownerId: number } };
+      assert.equal(body.item.estado, 'PAUSADO');
+      assert.equal(body.item.ownerId, 2);
+    } finally {
+      storedItem.estado = previous.estado;
+      storedItem.ownerId = previous.ownerId;
+      storedItem.owner = previous.owner;
+    }
+  });
+
+  it('un ítem ELIMINADO responde 404, también para el dueño', async () => {
+    const previous = storedItem.estado;
+    storedItem.estado = 'ELIMINADO';
+
+    try {
+      const res = await getItem('7');
+      assert.equal(res.status, 404);
+      const body = (await res.json()) as ErrorResponse;
+      assert.equal(body.error.code, 'NOT_FOUND');
+
+      const ownerToken = signToken({ id: storedItem.ownerId, email: 'dueno@utn.edu.ar' });
+      assert.equal((await getItem('7', ownerToken)).status, 404);
+    } finally {
+      storedItem.estado = previous;
+    }
+  });
+
   it('nunca expone el email ni la contraseña del dueño', async () => {
     const text = await (await getItem('7')).text();
     assert.ok(!text.includes('email'));

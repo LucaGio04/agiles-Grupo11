@@ -126,6 +126,28 @@ describe('DELETE /api/items/:id', () => {
     assert.equal($transaction.mock.callCount(), 0);
   });
 
+  it('un ítem ya ELIMINADO → 404 y no modifica nada', async () => {
+    findUnique.mock.mockImplementation(async () => ({
+      ...ownedItem,
+      estado: 'ELIMINADO' as never,
+    }));
+    const res = await deleteItem(ITEM_ID);
+    assert.equal(res.status, 404);
+    assert.equal($transaction.mock.callCount(), 0);
+  });
+
+  it('un ítem INTERCAMBIADO → 409 y no modifica nada', async () => {
+    findUnique.mock.mockImplementation(async () => ({
+      ...ownedItem,
+      estado: 'INTERCAMBIADO' as never,
+    }));
+    const res = await deleteItem(ITEM_ID);
+    assert.equal(res.status, 409);
+    const { error } = (await res.json()) as ErrorResponse;
+    assert.equal(error.code, 'CONFLICT');
+    assert.equal($transaction.mock.callCount(), 0);
+  });
+
   it('otro usuario intenta eliminar el ítem del dueño → 403', async () => {
     const res = await deleteItem(ITEM_ID, otherToken);
     assert.equal(res.status, 403);

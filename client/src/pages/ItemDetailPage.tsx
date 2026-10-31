@@ -215,7 +215,7 @@ export function ItemDetailPage() {
           </span>
           <div className="owner-info">
             <p className="owner-name">
-              {owner.nombre}
+              <Link to={`/usuarios/${owner.id}`}>{owner.nombre}</Link>
               {isMine && <span className="muted"> (vos)</span>}
             </p>
             <p className="muted">{owner.carrera}</p>
@@ -230,7 +230,16 @@ export function ItemDetailPage() {
               <Button variant="secondary" disabled title="Próximamente">
                 Editar
               </Button>
-              <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
+              <Button
+                variant="danger"
+                onClick={() => setShowDeleteModal(true)}
+                disabled={item.estado === 'INTERCAMBIADO'}
+                title={
+                  item.estado === 'INTERCAMBIADO'
+                    ? 'No se puede eliminar un ítem intercambiado'
+                    : undefined
+                }
+              >
                 Eliminar
               </Button>
             </>
@@ -245,11 +254,11 @@ export function ItemDetailPage() {
               propuestas.
             </p>
           )}
-          {isMine && (
-            <span className="field-hint">Editar va a estar disponible muy pronto.</span>
-          )}
+          {isMine && <span className="field-hint">Editar va a estar disponible muy pronto.</span>}
           {!isMine && disponible && (
-            <span className="field-hint">Las propuestas de intercambio van a estar disponibles muy pronto.</span>
+            <span className="field-hint">
+              Las propuestas de intercambio van a estar disponibles muy pronto.
+            </span>
           )}
         </div>
       </div>
