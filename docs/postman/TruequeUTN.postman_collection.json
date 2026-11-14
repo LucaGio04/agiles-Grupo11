@@ -740,6 +740,57 @@
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
+        },
+        {
+          "name": "Aceptar o rechazar propuesta",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/proposals/9",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"accion\": \"aceptar\"\n}" },
+            "description": "El receptor de una propuesta PENDIENTE la acepta o la rechaza. Requiere token.\n\nBody: { accion: \"aceptar\" | \"rechazar\" }\n\nAl aceptar, en una transacción: la propuesta pasa a ACEPTADA, ambos ítems a RESERVADO y el resto de las propuestas pendientes sobre esos ítems a RECHAZADA. Ambos usuarios ven el email del otro (persona.email) mientras la propuesta esté ACEPTADA o CONCRETADA.\nAl rechazar, la propuesta pasa a RECHAZADA y los ítems siguen DISPONIBLES.\n\nRespuestas:\n- 200 { data } — la propuesta actualizada, vista por quien responde\n- 400 VALIDATION_ERROR — id o acción inválidos\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no sos el receptor de la propuesta\n- 404 NOT_FOUND — la propuesta no existe\n- 409 CONFLICT — la propuesta ya no está pendiente, o alguno de los ítems ya no está disponible"
+          },
+          "response": [
+            {
+              "name": "200 - Propuesta aceptada",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"data\": {\n    \"id\": 9,\n    \"estado\": \"ACEPTADA\",\n    \"mensaje\": \"¿Lo cambiamos?\",\n    \"createdAt\": \"2026-11-01T15:00:00.000Z\",\n    \"updatedAt\": \"2026-11-02T15:00:00.000Z\",\n    \"rol\": \"receptor\",\n    \"persona\": {\n      \"id\": 3,\n      \"nombre\": \"Tomás Bellizzi\",\n      \"email\": \"tomas@utn.edu.ar\"\n    },\n    \"itemSolicitado\": {\n      \"id\": 8,\n      \"titulo\": \"Demo: Libro de Sofía\",\n      \"estado\": \"RESERVADO\",\n      \"categoria\": \"LIBRO\",\n      \"fotoUrl\": null\n    },\n    \"itemOfrecido\": {\n      \"id\": 5,\n      \"titulo\": \"Demo: Apunte de Tomás\",\n      \"estado\": \"RESERVADO\",\n      \"categoria\": \"APUNTE\",\n      \"fotoUrl\": null\n    },\n    \"calificacionDada\": null,\n    \"calificacionRecibida\": null\n  }\n}"
+            },
+            {
+              "name": "403 - No es el receptor",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo quien recibió la propuesta puede aceptarla o rechazarla\"\n  }\n}"
+            },
+            {
+              "name": "404 - No existe",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"La propuesta no existe\"\n  }\n}"
+            },
+            {
+              "name": "409 - Ya no está pendiente",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"La propuesta ya no está pendiente\"\n  }\n}"
+            },
+            {
+              "name": "400 - Acción inválida",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.accion\",\n        \"message\": \"La acción debe ser \\\"aceptar\\\" o \\\"rechazar\\\"\"\n      }\n    ]\n  }\n}"
+            }
+          ]
         }
       ]
     }
