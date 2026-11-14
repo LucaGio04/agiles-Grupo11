@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as itemController from '../controllers/item.controller.js';
+import * as proposalController from '../controllers/proposal.controller.js';
 import { requireAuth } from '../middlewares/requireAuth.js';
 import { validate } from '../middlewares/validate.js';
 import {
@@ -8,6 +9,7 @@ import {
   listItemsQuerySchema,
   updateItemSchema,
 } from '../schemas/item.schema.js';
+import { proposeItemSchema } from '../schemas/proposal.schema.js';
 
 const router = Router();
 
@@ -22,5 +24,12 @@ router.patch(
 );
 // Elimina lógicamente el ítem propio (HU-15). Requiere ser el dueño; responde 204 en éxito.
 router.delete('/:id', requireAuth, validate({ params: itemIdParamsSchema }), itemController.remove);
+// Propone un intercambio sobre un ítem ajeno (HU-06). El ítem ofrecido va en el body.
+router.post(
+  '/:id/propose',
+  requireAuth,
+  validate({ params: itemIdParamsSchema, body: proposeItemSchema }),
+  proposalController.propose
+);
 
 export default router;
