@@ -1,5 +1,7 @@
 # TruequeUTN
 
+[![CI](https://github.com/LucaGio04/agiles-Grupo11/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/LucaGio04/agiles-Grupo11/actions/workflows/ci.yml)
+
 Trabajo Práctico para la materia Metodologías Ágiles — Grupo 11.
 
 Plataforma web académica para que estudiantes de la UTN intercambien materiales de estudio (libros, apuntes, calculadoras) sin dinero de por medio. Los usuarios podrán publicar materiales que ya no usan, buscar los que necesitan y proponer un intercambio directo con otro estudiante.
@@ -116,6 +118,8 @@ npm test          # Tests del servidor (node:test)
 npm run build     # Compila ambos paquetes
 npm run format    # Prettier en todo el repo
 ```
+
+**Integración continua.** En cada Pull Request (y en cada push a `develop` y `main`) GitHub Actions corre `npm ci`, `npm run lint`, `npm run build` y `npm test` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Si alguno falla, el PR queda en rojo. Antes de abrir un PR, corré esos mismos comandos en local.
 
 Para levantar un paquete por separado:
 
