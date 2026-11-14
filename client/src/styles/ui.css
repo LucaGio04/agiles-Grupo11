@@ -806,20 +806,31 @@
   }
 }
 
-/* Modal de confirmación (HU-15) */
+/* Modal (components/ui/Modal.tsx). El <dialog> se abre con showModal() y ocupa toda la
+   pantalla: oscurece el fondo y centra el recuadro. Se pisan los tamaños que pone el navegador. */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 1rem;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.45);
+  color: inherit;
+  overflow: auto;
+}
+
+.modal-backdrop[open] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.45);
-  padding: 1rem;
-  border: none;
-  width: 100%;
-  max-width: 100%;
-  max-height: 100%;
+}
+
+.modal-backdrop::backdrop {
+  background: transparent;
 }
 
 .modal {

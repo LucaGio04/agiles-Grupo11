@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../auth/useAuth.ts';
 import { ItemPhoto } from '../components/items/ItemPhoto.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
+import { Modal } from '../components/ui/Modal.tsx';
 import { ApiError, apiFetch, createProposal, getMyItems } from '../lib/api.ts';
 import {
   CATEGORIAS,
@@ -51,42 +52,31 @@ function DeleteModal({
   loading: boolean;
   error: string | null;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  // Cierra el modal al hacer clic en el backdrop (fuera del recuadro blanco).
-  function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
-    if (e.target === dialogRef.current) onCancel();
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      open
-      className="modal-backdrop"
-      onClick={handleBackdropClick}
-      aria-labelledby="delete-modal-title"
-      aria-describedby="delete-modal-desc"
+    <Modal
+      labelledBy="delete-modal-title"
+      describedBy="delete-modal-desc"
+      busy={loading}
+      onClose={onCancel}
     >
-      <div className="modal" role="document">
-        <h2 id="delete-modal-title">¿Eliminar publicación?</h2>
-        <p id="delete-modal-desc">
-          Las propuestas pendientes quedarán canceladas. Esta acción no se puede deshacer.
+      <h2 id="delete-modal-title">¿Eliminar publicación?</h2>
+      <p id="delete-modal-desc">
+        Las propuestas pendientes quedarán canceladas. Esta acción no se puede deshacer.
+      </p>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
         </p>
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="modal-actions">
-          <Button variant="secondary" onClick={onCancel} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button variant="danger" onClick={onConfirm} loading={loading}>
-            Eliminar
-          </Button>
-        </div>
+      )}
+      <div className="modal-actions">
+        <Button variant="secondary" onClick={onCancel} disabled={loading}>
+          Cancelar
+        </Button>
+        <Button variant="danger" onClick={onConfirm} loading={loading}>
+          Eliminar
+        </Button>
       </div>
-    </dialog>
+    </Modal>
   );
 }
 
@@ -119,7 +109,6 @@ function ProposeModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [items, setItems] = useState<Item[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -144,11 +133,6 @@ function ProposeModal({
     };
   }, []);
 
-  function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
-    if (submitting) return;
-    if (e.target === dialogRef.current) onClose();
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (selectedId === null) return;
@@ -170,97 +154,94 @@ function ProposeModal({
   const disponibles = items ?? [];
 
   return (
-    <dialog
-      ref={dialogRef}
-      open
-      className="modal-backdrop"
-      onClick={handleBackdropClick}
-      aria-labelledby="propose-modal-title"
+    <Modal
+      labelledBy="propose-modal-title"
+      className="propose-modal"
+      busy={submitting}
+      onClose={onClose}
     >
-      <div className="modal propose-modal" role="document">
-        <h2 id="propose-modal-title">Proponer intercambio</h2>
-        <p>Elegí uno de tus ítems disponibles para ofrecer a cambio.</p>
+      <h2 id="propose-modal-title">Proponer intercambio</h2>
+      <p>Elegí uno de tus ítems disponibles para ofrecer a cambio.</p>
 
-        {items === null && !loadError && <Loader label="Cargando tus publicaciones..." />}
-        {loadError && (
-          <p className="form-error" role="alert">
-            {loadError}
-          </p>
-        )}
-        {items && disponibles.length === 0 && (
-          <p>
-            No tenés ítems disponibles para ofrecer. <Link to="/publicar">Publicar</Link>
-          </p>
-        )}
+      {items === null && !loadError && <Loader label="Cargando tus publicaciones..." />}
+      {loadError && (
+        <p className="form-error" role="alert">
+          {loadError}
+        </p>
+      )}
+      {items && disponibles.length === 0 && (
+        <p>
+          No tenés ítems disponibles para ofrecer. <Link to="/publicar">Publicar</Link>
+        </p>
+      )}
 
-        {disponibles.length > 0 && (
-          <form onSubmit={handleSubmit}>
-            <fieldset className="propose-fieldset">
-              <legend>Elegí qué ofrecer</legend>
-              <ul className="propose-list">
-                {disponibles.map((item) => (
-                  <li key={item.id}>
-                    <label className="propose-option">
-                      <input
-                        type="radio"
-                        name="itemOfrecidoId"
-                        value={item.id}
-                        checked={selectedId === item.id}
-                        onChange={() => setSelectedId(item.id)}
-                        required
-                      />
-                      <span>
-                        {item.titulo}
-                        {item.materia && <span className="muted"> · {item.materia}</span>}
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </fieldset>
+      {disponibles.length > 0 && (
+        <form onSubmit={handleSubmit}>
+          <fieldset className="propose-fieldset">
+            <legend>Elegí qué ofrecer</legend>
+            <ul className="propose-list">
+              {disponibles.map((item) => (
+                <li key={item.id}>
+                  <label className="propose-option">
+                    <input
+                      type="radio"
+                      name="itemOfrecidoId"
+                      value={item.id}
+                      checked={selectedId === item.id}
+                      onChange={() => setSelectedId(item.id)}
+                      required
+                    />
+                    <span>
+                      {item.titulo}
+                      {item.materia && <span className="muted"> · {item.materia}</span>}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
 
-            <label className="field" htmlFor="propuesta-mensaje">
-              <span>Mensaje (opcional)</span>
-              <textarea
-                id="propuesta-mensaje"
-                name="mensaje"
-                rows={3}
-                maxLength={MENSAJE_MAX}
-                placeholder="Contale por qué te interesa el cambio"
-                value={mensaje}
-                onChange={(e) => setMensaje(e.target.value)}
-              />
-              <span className="field-hint propose-count">
-                {mensaje.length}/{MENSAJE_MAX}
-              </span>
-            </label>
+          <label className="field" htmlFor="propuesta-mensaje">
+            <span>Mensaje (opcional)</span>
+            <textarea
+              id="propuesta-mensaje"
+              name="mensaje"
+              rows={3}
+              maxLength={MENSAJE_MAX}
+              placeholder="Contale por qué te interesa el cambio"
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+            />
+            <span className="field-hint propose-count">
+              {mensaje.length}/{MENSAJE_MAX}
+            </span>
+          </label>
 
-            {error && (
-              <p className="form-error" role="alert">
-                {error}
-              </p>
-            )}
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
 
-            <div className="modal-actions">
-              <Button variant="secondary" onClick={onClose} disabled={submitting}>
-                Cancelar
-              </Button>
-              <Button type="submit" loading={submitting} disabled={selectedId === null}>
-                Enviar propuesta
-              </Button>
-            </div>
-          </form>
-        )}
-
-        {items && disponibles.length === 0 && (
           <div className="modal-actions">
-            <Button variant="secondary" onClick={onClose}>
-              Cerrar
+            <Button variant="secondary" onClick={onClose} disabled={submitting}>
+              Cancelar
+            </Button>
+            <Button type="submit" loading={submitting} disabled={selectedId === null}>
+              Enviar propuesta
             </Button>
           </div>
-        )}
-      </div>
-    </dialog>
+        </form>
+      )}
+
+      {items && disponibles.length === 0 && (
+        <div className="modal-actions">
+          <Button variant="secondary" onClick={onClose}>
+            Cerrar
+          </Button>
+        </div>
+      )}
+    </Modal>
   );
 }
 
