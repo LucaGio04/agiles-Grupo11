@@ -853,6 +853,70 @@
   margin-top: 0.5rem;
 }
 
+.propose-modal {
+  max-width: 32rem;
+  max-height: min(40rem, calc(100vh - 2rem));
+  overflow: auto;
+}
+
+.propose-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.propose-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.propose-fieldset legend {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.propose-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 14rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.propose-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.propose-option:has(:checked) {
+  border-color: var(--accent);
+  background-color: var(--accent-soft);
+}
+
+.propose-option input {
+  margin-top: 0.2rem;
+  accent-color: var(--accent);
+}
+
+.propose-count {
+  align-self: flex-end;
+}
+
 /* Perfil: publicaciones por estado e historial de intercambios. */
 
 .profile-page {
