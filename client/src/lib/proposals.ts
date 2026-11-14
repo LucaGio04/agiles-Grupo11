@@ -33,7 +33,8 @@ export type Intercambio = {
   createdAt: string;
   updatedAt: string;
   rol: 'proponente' | 'receptor';
-  persona: { id: number; nombre: string };
+  // El email solo viene cuando la propuesta está ACEPTADA o CONCRETADA.
+  persona: { id: number; nombre: string; email?: string };
   itemSolicitado: ItemDePropuesta;
   itemOfrecido: ItemDePropuesta;
   calificacionDada: CalificacionResumen | null;

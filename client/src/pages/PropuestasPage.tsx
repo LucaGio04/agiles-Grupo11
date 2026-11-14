@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 import { ItemPhoto } from '../components/items/ItemPhoto.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { Card } from '../components/ui/Card.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
-import { ApiError, getMyProposals } from '../lib/api.ts';
+import { ApiError, getMyProposals, respondProposal } from '../lib/api.ts';
 import {
   ESTADOS_PROPUESTA,
   type EstadoPropuesta,
@@ -136,7 +137,7 @@ export function PropuestasPage() {
           <ul className="profile-list">
             {current.data.map((propuesta) => (
               <li key={propuesta.id}>
-                <PropuestaCard propuesta={propuesta} />
+                <PropuestaCard propuesta={propuesta} onChanged={() => setRetry((n) => n + 1)} />
               </li>
             ))}
           </ul>
@@ -146,7 +147,54 @@ export function PropuestasPage() {
   );
 }
 
-function PropuestaCard({ propuesta }: { propuesta: Intercambio }) {
+type Accion = 'aceptar' | 'rechazar';
+
+const CONFIRMACION: Record<Accion, { title: string; message: string; confirm: string }> = {
+  aceptar: {
+    title: '¿Aceptar la propuesta?',
+    message:
+      'Los dos ítems quedan reservados, se rechazan las otras propuestas pendientes sobre ellos y ambos van a ver el email del otro para coordinar el encuentro.',
+    confirm: 'Aceptar',
+  },
+  rechazar: {
+    title: '¿Rechazar la propuesta?',
+    message: 'Tus ítems siguen disponibles y no se puede deshacer.',
+    confirm: 'Rechazar',
+  },
+};
+
+const RESPOND_ERROR = 'No pudimos responder la propuesta. Revisá tu conexión y probá de nuevo.';
+
+function PropuestaCard({
+  propuesta,
+  onChanged,
+}: {
+  propuesta: Intercambio;
+  onChanged: () => void;
+}) {
+  const [accion, setAccion] = useState<Accion | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirmar() {
+    if (!accion) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await respondProposal(propuesta.id, accion);
+      setAccion(null);
+      onChanged();
+    } catch (err) {
+      // Un 409 (ya no está pendiente) o 403 trae su propio mensaje; sin respuesta, se asume la conexión.
+      setError(err instanceof ApiError ? err.message : RESPOND_ERROR);
+      setAccion(null);
+      // Si otro la resolvió antes, la lista tiene que reflejarlo.
+      if (err instanceof ApiError && err.status === 409) onChanged();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const pendienteRecibida = propuesta.rol === 'receptor' && propuesta.estado === 'PENDIENTE';
   const ofrece = propuesta.rol === 'proponente' ? 'Ofreciste' : 'Te ofrece';
   const pide = propuesta.rol === 'proponente' ? 'Pediste' : 'Pide tu ítem';
@@ -172,9 +220,35 @@ function PropuestaCard({ propuesta }: { propuesta: Intercambio }) {
       </div>
 
       {propuesta.mensaje && <p className="proposal-message">“{propuesta.mensaje}”</p>}
+      {propuesta.persona.email && (
+        <p className="proposal-contact">
+          Para coordinar el encuentro escribile a{' '}
+          <a href={`mailto:${propuesta.persona.email}`}>{propuesta.persona.email}</a>
+        </p>
+      )}
       <p className="muted proposal-date">
         Enviada el {dateFormat.format(new Date(propuesta.createdAt))}
       </p>
+
+      {error && <ErrorMessage message={error} />}
+      {pendienteRecibida && (
+        <div className="proposal-actions">
+          <Button onClick={() => setAccion('aceptar')}>Aceptar</Button>
+          <Button variant="danger" onClick={() => setAccion('rechazar')}>
+            Rechazar
+          </Button>
+        </div>
+      )}
+
+      {accion && (
+        <ConfirmDialog
+          {...CONFIRMACION[accion]}
+          variant={accion === 'rechazar' ? 'danger' : 'primary'}
+          loading={saving}
+          onConfirm={confirmar}
+          onCancel={() => setAccion(null)}
+        />
+      )}
     </Card>
   );
 }

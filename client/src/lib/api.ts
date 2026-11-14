@@ -103,6 +103,14 @@ export function getMyProposals(status?: EstadoPropuesta, type?: TipoPropuesta) {
   );
 }
 
+// El receptor acepta o rechaza una propuesta pendiente.
+export function respondProposal(id: number, accion: 'aceptar' | 'rechazar') {
+  return apiFetch<{ data: Intercambio }>(`/api/proposals/${id}`, {
+    method: 'PATCH',
+    body: { accion },
+  });
+}
+
 // Perfil público de un estudiante. El mismo dato si el id es el del usuario logueado.
 export function getUserProfile(id: string) {
   return apiFetch<{ data: PerfilPublico }>(`/api/users/${id}`);
