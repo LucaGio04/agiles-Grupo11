@@ -164,11 +164,19 @@ function PropuestaCard({ propuesta }: { propuesta: Intercambio }) {
       </header>
 
       <div className="proposal-items">
-        <ProposalItem label={ofrece} item={propuesta.itemOfrecido} />
+        <ProposalItem
+          label={ofrece}
+          item={propuesta.itemOfrecido}
+          esMio={propuesta.rol === 'proponente'}
+        />
         <span className="proposal-arrow" aria-hidden="true">
           ⇄
         </span>
-        <ProposalItem label={pide} item={propuesta.itemSolicitado} />
+        <ProposalItem
+          label={pide}
+          item={propuesta.itemSolicitado}
+          esMio={propuesta.rol === 'receptor'}
+        />
       </div>
 
       {propuesta.mensaje && <p className="proposal-message">“{propuesta.mensaje}”</p>}
@@ -179,7 +187,21 @@ function PropuestaCard({ propuesta }: { propuesta: Intercambio }) {
   );
 }
 
-function ProposalItem({ label, item }: { label: string; item: ItemDePropuesta }) {
+// Un ítem eliminado da 404 para todos y uno pausado solo lo ve su dueño: en esos casos no hay link.
+function isViewable(item: ItemDePropuesta, esMio: boolean) {
+  if (item.estado === 'ELIMINADO') return false;
+  return item.estado !== 'PAUSADO' || esMio;
+}
+
+function ProposalItem({
+  label,
+  item,
+  esMio,
+}: {
+  label: string;
+  item: ItemDePropuesta;
+  esMio: boolean;
+}) {
   return (
     <div className="proposal-item">
       <ItemPhoto
@@ -188,8 +210,14 @@ function ProposalItem({ label, item }: { label: string; item: ItemDePropuesta })
         titulo={item.titulo}
         className="proposal-item-photo"
       />
-      <p className="muted">{label}</p>
-      <Link to={`/items/${item.id}`}>{item.titulo}</Link>
+      <div className="proposal-item-text">
+        <p className="muted">{label}</p>
+        {isViewable(item, esMio) ? (
+          <Link to={`/items/${item.id}`}>{item.titulo}</Link>
+        ) : (
+          <span className="proposal-item-title">{item.titulo}</span>
+        )}
+      </div>
     </div>
   );
 }
