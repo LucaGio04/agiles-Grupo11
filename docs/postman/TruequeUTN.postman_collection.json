@@ -740,6 +740,79 @@
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
+        },
+        {
+          "name": "Proponer intercambio",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items/8/propose",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemOfrecidoId\": 4,\n  \"mensaje\": \"¿Lo cambiamos?\"\n}"
+            },
+            "description": "Propone un intercambio sobre un ítem ajeno (HU-06). Requiere token.\n\nURL: el :id es el ítem solicitado.\nBody: { itemOfrecidoId, mensaje? }.\n- itemOfrecidoId: id de un ítem DISPONIBLE del usuario del token.\n- mensaje: opcional, hasta 300 caracteres. Vacío se toma como no enviado.\n- El proponente es el usuario del token y el receptor es el dueño del ítem solicitado. Esos ids no se aceptan en el body.\n\nReglas:\n- El ítem solicitado y el ofrecido tienen que existir y estar DISPONIBLES. Un ítem eliminado responde igual que uno inexistente.\n- No se puede proponer sobre un ítem propio.\n- El ítem ofrecido tiene que ser del usuario autenticado.\n- No puede haber dos propuestas PENDIENTES para el mismo par (solicitado, ofrecido). Una propuesta en otro estado no bloquea.\n- La propuesta se crea en PENDIENTE.\n\nRespuestas:\n- 201 { proposal }\n- 400 BAD_REQUEST — ítem propio, ítem no disponible o el ofrecido no es propio\n- 400 VALIDATION_ERROR — falta itemOfrecidoId o el mensaje supera los 300 caracteres\n- 404 NOT_FOUND — no existe el ítem solicitado o el ofrecido\n- 409 CONFLICT — ya hay una propuesta pendiente para ese par\n- 401 UNAUTHORIZED — sin token o token vencido"
+          },
+          "response": [
+            {
+              "name": "201 - Propuesta pendiente",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"proposal\": {\n    \"id\": 20,\n    \"itemSolicitadoId\": 8,\n    \"itemOfrecidoId\": 4,\n    \"proponenteId\": 1,\n    \"receptorId\": 2,\n    \"mensaje\": \"¿Lo cambiamos?\",\n    \"estado\": \"PENDIENTE\",\n    \"createdAt\": \"2026-11-13T12:00:00.000Z\",\n    \"updatedAt\": \"2026-11-13T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "400 - Ítem propio",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"BAD_REQUEST\",\n    \"message\": \"No podés proponer un intercambio sobre tu propia publicación\"\n  }\n}"
+            },
+            {
+              "name": "400 - Mensaje demasiado largo",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.mensaje\",\n        \"message\": \"El mensaje puede tener hasta 300 caracteres\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 - Ítem solicitado inexistente",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}"
+            },
+            {
+              "name": "404 - Ítem ofrecido inexistente",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos el ítem que querés ofrecer\"\n  }\n}"
+            },
+            {
+              "name": "409 - Propuesta pendiente duplicada",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Ya tenés una propuesta pendiente para este intercambio\"\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ]
         }
       ]
     }

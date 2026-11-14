@@ -99,6 +99,16 @@ export function getMyProposals(status?: EstadoPropuesta) {
   return apiFetch<{ data: Intercambio[] }>(`/api/proposals${query ? `?${query}` : ''}`);
 }
 
+// Ofrece uno de mis ítems a cambio del ítem solicitado (HU-06). Queda PENDIENTE.
+export function createProposal(
+  itemSolicitadoId: number,
+  body: { itemOfrecidoId: number; mensaje?: string }
+) {
+  return apiFetch<{
+    proposal: { id: number; estado: EstadoPropuesta; mensaje: string | null };
+  }>(`/api/items/${itemSolicitadoId}/propose`, { method: 'POST', body });
+}
+
 // Perfil público de un estudiante. El mismo dato si el id es el del usuario logueado.
 export function getUserProfile(id: string) {
   return apiFetch<{ data: PerfilPublico }>(`/api/users/${id}`);
