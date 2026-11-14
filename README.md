@@ -128,6 +128,14 @@ npm run dev -w client
 
 La colección de Postman con todos los endpoints, ejemplos y respuestas está en [`docs/postman/TruequeUTN.postman_collection.json`](docs/postman/TruequeUTN.postman_collection.json) (en Postman: _File → Import_). El request de login guarda el token para usarlo en los endpoints protegidos.
 
+**Correr la colección completa.** Con el server levantado y la base con el seed (`npm run db:migrate` y `npm run seed`), la colección corre de arriba hacia abajo sin tocar los datos del seed: publica un ítem propio, lo consulta, lo edita y lo elimina. Cada request tiene sus aserciones, y se puede repetir las veces que quieras (el registro usa un email nuevo en cada corrida). Por consola:
+
+```bash
+npx newman run docs/postman/TruequeUTN.postman_collection.json --working-dir docs/postman
+```
+
+`--working-dir` hace falta para que encuentre `foto-prueba.png`, la imagen que usa el request "Subir foto". En el Runner de Postman, apuntá el _Working directory_ a `docs/postman`. Si algún request falla, newman termina con código distinto de 0.
+
 | Método | Ruta                  | Auth | Descripción                                                                                                |
 | ------ | --------------------- | ---- | ---------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/health`         | No   | Estado del server                                                                                          |
