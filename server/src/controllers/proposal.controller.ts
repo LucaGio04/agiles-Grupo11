@@ -16,3 +16,9 @@ export const propose: RequestHandler = async (req, res) => {
   );
   res.status(201).json({ proposal });
 };
+
+// Cancela la propuesta :id (accion "cancelar"). Responde 200 { data } con la misma vista del listado.
+export const cancel: RequestHandler = async (req, res) => {
+  const data = await proposalService.cancelProposal(req.user!.id, Number(req.params.id));
+  res.json({ data });
+};

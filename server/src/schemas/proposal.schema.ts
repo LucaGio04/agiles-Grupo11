@@ -30,3 +30,20 @@ export const proposeItemSchema = z.object({
 });
 
 export type ProposeItemInput = z.infer<typeof proposeItemSchema>;
+
+const INVALID_PROPOSAL_ID = 'El id de la propuesta no es válido';
+
+// Mismo mensaje para cualquier id inválido: no numérico (abc), decimal (7.5), cero o negativo.
+export const proposalIdParamsSchema = z.object({
+  id: z.coerce
+    .number({ error: INVALID_PROPOSAL_ID })
+    .int(INVALID_PROPOSAL_ID)
+    .positive(INVALID_PROPOSAL_ID),
+});
+
+// Body de PATCH /api/proposals/:id. Por ahora la única acción es cancelar.
+export const cancelProposalSchema = z.object({
+  accion: z.literal('cancelar', { error: 'La acción tiene que ser cancelar' }),
+});
+
+export type CancelProposalInput = z.infer<typeof cancelProposalSchema>;

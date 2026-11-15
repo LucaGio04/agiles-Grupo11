@@ -10,6 +10,38 @@ function toRating(rating: RatingRow | undefined) {
   return { puntaje: rating.puntaje, comentario: rating.comentario };
 }
 
+// Misma forma que cada elemento de GET /api/proposals. Cancelar responde una de estas.
+const proposalViewInclude = {
+  proponente: { select: { id: true, nombre: true } },
+  receptor: { select: { id: true, nombre: true } },
+  itemSolicitado: { select: { id: true, titulo: true, estado: true } },
+  itemOfrecido: { select: { id: true, titulo: true, estado: true } },
+  calificaciones: {
+    select: { puntaje: true, comentario: true, evaluadorId: true, evaluadoId: true },
+  },
+} as const;
+
+type ProposalViewRow = Prisma.ProposalGetPayload<{ include: typeof proposalViewInclude }>;
+
+function toProposalView(proposal: ProposalViewRow, userId: number) {
+  const soyProponente = proposal.proponenteId === userId;
+  const dada = proposal.calificaciones.find((rating) => rating.evaluadorId === userId);
+  const recibida = proposal.calificaciones.find((rating) => rating.evaluadoId === userId);
+  return {
+    id: proposal.id,
+    estado: proposal.estado,
+    mensaje: proposal.mensaje,
+    createdAt: proposal.createdAt,
+    updatedAt: proposal.updatedAt,
+    rol: soyProponente ? ('proponente' as const) : ('receptor' as const),
+    persona: soyProponente ? proposal.receptor : proposal.proponente,
+    itemSolicitado: proposal.itemSolicitado,
+    itemOfrecido: proposal.itemOfrecido,
+    calificacionDada: toRating(dada),
+    calificacionRecibida: toRating(recibida),
+  };
+}
+
 // Propuestas en las que participa el usuario logueado. No lista las de terceros.
 // La persona, los ítems y las calificaciones se arman desde el punto de vista de quien consulta.
 export async function listMyProposals(userId: number, status?: ListProposalsQuery['status']) {
@@ -19,37 +51,10 @@ export async function listMyProposals(userId: number, status?: ListProposalsQuer
       ...(status ? { estado: status } : {}),
     },
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-    include: {
-      proponente: { select: { id: true, nombre: true } },
-      receptor: { select: { id: true, nombre: true } },
-      itemSolicitado: { select: { id: true, titulo: true, estado: true } },
-      itemOfrecido: { select: { id: true, titulo: true, estado: true } },
-      calificaciones: {
-        select: { puntaje: true, comentario: true, evaluadorId: true, evaluadoId: true },
-      },
-    },
+    include: proposalViewInclude,
   });
 
-  return {
-    data: proposals.map((proposal) => {
-      const soyProponente = proposal.proponenteId === userId;
-      const dada = proposal.calificaciones.find((rating) => rating.evaluadorId === userId);
-      const recibida = proposal.calificaciones.find((rating) => rating.evaluadoId === userId);
-      return {
-        id: proposal.id,
-        estado: proposal.estado,
-        mensaje: proposal.mensaje,
-        createdAt: proposal.createdAt,
-        updatedAt: proposal.updatedAt,
-        rol: soyProponente ? ('proponente' as const) : ('receptor' as const),
-        persona: soyProponente ? proposal.receptor : proposal.proponente,
-        itemSolicitado: proposal.itemSolicitado,
-        itemOfrecido: proposal.itemOfrecido,
-        calificacionDada: toRating(dada),
-        calificacionRecibida: toRating(recibida),
-      };
-    }),
-  };
+  return { data: proposals.map((proposal) => toProposalView(proposal, userId)) };
 }
 
 type ItemRef = { id: number; ownerId: number; estado: string };
@@ -116,5 +121,69 @@ export async function createProposal(
         estado: 'PENDIENTE',
       },
     });
+  });
+}
+
+// Cancela una propuesta en la que participa el usuario (HU-16).
+// - PENDIENTE: solo quien la envió. Queda CANCELADA y el receptor ya no puede aceptarla.
+// - ACEPTADA: cualquiera de las dos partes. Los ítems RESERVADO vuelven a DISPONIBLE.
+// El FOR UPDATE y el update condicionado al estado leído evitan pisar un aceptar o rechazar concurrente.
+export async function cancelProposal(userId: number, proposalId: number) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Proposal" WHERE id = ${proposalId} FOR UPDATE`;
+
+    const proposal = await tx.proposal.findUnique({
+      where: { id: proposalId },
+      select: {
+        id: true,
+        estado: true,
+        proponenteId: true,
+        receptorId: true,
+        itemSolicitadoId: true,
+        itemOfrecidoId: true,
+      },
+    });
+    if (!proposal) throw AppError.notFound('No encontramos esa propuesta');
+
+    const participa = proposal.proponenteId === userId || proposal.receptorId === userId;
+    if (!participa) {
+      throw AppError.forbidden('Solo podés cancelar una propuesta en la que participás');
+    }
+
+    if (proposal.estado === 'PENDIENTE') {
+      if (proposal.proponenteId !== userId) {
+        throw AppError.conflict('Mientras está pendiente, solo quien la envió puede cancelarla');
+      }
+    } else if (proposal.estado !== 'ACEPTADA') {
+      throw AppError.conflict('Esta propuesta ya no se puede cancelar');
+    }
+
+    const cancelada = await tx.proposal.updateMany({
+      where: { id: proposalId, estado: proposal.estado },
+      data: { estado: 'CANCELADA' },
+    });
+    if (cancelada.count !== 1) {
+      throw AppError.conflict('Esta propuesta ya no se puede cancelar');
+    }
+
+    if (proposal.estado === 'ACEPTADA') {
+      const ids = [...new Set([proposal.itemSolicitadoId, proposal.itemOfrecidoId])].sort(
+        (a, b) => a - b
+      );
+      await tx.$queryRaw`
+        SELECT id FROM "Item" WHERE id IN (${Prisma.join(ids)}) ORDER BY id FOR UPDATE
+      `;
+      await tx.item.updateMany({
+        where: { id: { in: ids }, estado: 'RESERVADO' },
+        data: { estado: 'DISPONIBLE' },
+      });
+    }
+
+    const row = await tx.proposal.findUnique({
+      where: { id: proposalId },
+      include: proposalViewInclude,
+    });
+    if (!row) throw AppError.notFound('No encontramos esa propuesta');
+    return toProposalView(row, userId);
   });
 }
