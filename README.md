@@ -54,15 +54,19 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-| Variable         | Paquete | Descripción                                                                    |
-| ---------------- | ------- | ------------------------------------------------------------------------------ |
-| `PORT`           | server  | Puerto del backend (default: 3001)                                             |
-| `CLIENT_URL`     | server  | URL del frontend para CORS                                                     |
-| `DATABASE_URL`   | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)  |
-| `JWT_SECRET`     | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio |
-| `UPLOADS_DIR`    | server  | (Opcional) Carpeta de las fotos de los ítems. Por defecto `server/uploads`     |
-| `API_PUBLIC_URL` | server  | (Opcional) URL pública del backend para armar el link de las fotos             |
-| `VITE_API_URL`   | client  | URL base del backend                                                           |
+| Variable                | Paquete | Descripción                                                                                         |
+| ----------------------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`              | server  | `development` en local. En Render, `production` (oculta el stack de los errores 500)               |
+| `PORT`                  | server  | Puerto del backend (default: 3001). En Render lo inyecta la plataforma: no lo cargues               |
+| `CLIENT_URL`            | server  | Un solo origen del frontend para CORS, sin barra final                                             |
+| `DATABASE_URL`          | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)                      |
+| `JWT_SECRET`            | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio                     |
+| `ALLOWED_EMAIL_DOMAIN`  | server  | Dominio permitido en el registro (default: `utn.edu.ar`)                                            |
+| `UPLOADS_DIR`           | server  | (Opcional) Carpeta de las fotos de los ítems. Por defecto `server/uploads`                          |
+| `API_PUBLIC_URL`        | server  | (Opcional en local) URL https del backend, sin barra final, para armar el link de las fotos        |
+| `VITE_API_URL`          | client  | URL base del backend, sin barra final y sin `/api`                                                  |
+
+Los valores de producción (ficticios en los example) están comentados al final de `server/.env.example` y `client/.env.example`. Cómo cargarlos en Render y Vercel está en [Deploy](#deploy).
 
 ### 3. Base de datos
 
@@ -84,7 +88,7 @@ npm run db:seed:demo
 
 Se puede correr varias veces: actualiza los mismos datos en lugar de duplicarlos. Reutiliza a `tomas@utn.edu.ar` si ya existe (no le cambia la contraseña) y crea a `sofia.demo@utn.edu.ar` con la contraseña `Trueque123` si no estaba. Tomás queda con un ítem disponible, uno reservado, uno pausado y uno intercambiado. Sofía queda con un ítem pausado, que Tomás no puede ver. Hay dos intercambios concretados entre los dos: uno con calificación dada y recibida, y otro sin calificar.
 
-`npm run seed` borra toda la base antes de cargar, así que después hay que volver a correr `npm run db:seed:demo`.
+`npm run seed` borra toda la base antes de cargar, así que después hay que volver a correr `npm run db:seed:demo`. En el deploy no se engancha a ningún comando: si hace falta datos de demo en producción, se corre una sola vez y a mano sobre una base vacía (ver [Deploy](#deploy)).
 
 Otros comandos útiles (desde `server/`):
 
@@ -127,6 +131,96 @@ Para levantar un paquete por separado:
 npm run dev -w server
 npm run dev -w client
 ```
+
+## Deploy
+
+Front en Vercel, API en Render y PostgreSQL gestionado en Render. El cliente llama a la API con `VITE_API_URL`. No hay secretos en el repo: cada plataforma los carga en su panel.
+
+```text
+navegador → Vercel (client/dist) → Render (Express) → PostgreSQL
+```
+
+### Dónde se configura cada cosa
+
+| | Vercel | Render (web service) |
+| --- | --- | --- |
+| Root directory | `client` | vacío (raíz del repo) |
+| Framework / runtime | Vite | Node |
+| Build | `npm run build` (lo detecta Vite) | `npm ci --include=dev && npm run build -w server` |
+| Start | estático | `npm run db:migrate:deploy -w server && npm run start -w server` |
+
+`tsc` y `prisma` son devDependencies. Render exporta `NODE_ENV=production` también durante el build, así que `npm ci` pelado no los instala: `--include=dev` los incluye. Esos `node_modules` quedan para el start, y `prisma migrate deploy` los necesita.
+
+El mismo build y el mismo start están en [`render.yaml`](render.yaml). Se puede aplicar como Blueprint o copiar los comandos en el panel. Node 22 (el de CI).
+
+`npm run db:migrate:deploy` (en `server/`, `prisma migrate deploy`) aplica las migraciones ya commiteadas. Va encadenado **antes** de `npm run start -w server`, así que cada arranque deja la base al día. No crea migraciones nuevas y no corre el seed. En local se sigue usando `npm run db:migrate` (`prisma migrate dev`).
+
+Health check: `GET /api/health` → `{ "status": "ok" }`. En Render, Health Check Path: `/api/health`.
+
+### Variables por servicio
+
+**Render (API).** No cargues `PORT`: lo inyecta la plataforma.
+
+| Variable | Valor |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Internal Database URL de Render. Si usás la External Database URL, agregá `sslmode=require` |
+| `JWT_SECRET` | Secreto largo y aleatorio, distinto del de desarrollo |
+| `CLIENT_URL` | URL https del front, un solo origen, sin barra final. Ejemplo ficticio: `https://truequeutn.vercel.app` |
+| `API_PUBLIC_URL` | URL https del propio backend, sin barra final. Ejemplo ficticio: `https://truequeutn-api.onrender.com` |
+| `ALLOWED_EMAIL_DOMAIN` | `utn.edu.ar` |
+
+`API_PUBLIC_URL` tiene que ser https. Las fotos se sirven desde el backend (`/uploads/...`) y, si el link sale en http, el navegador las bloquea por contenido mixto. Sin esta variable el server arma el link con el host del request, que detrás del proxy de Render puede ser http.
+
+`CLIENT_URL` es un solo origen y se compara tal cual. Una barra final, o `www` de más, hace que el front reciba 403 `CORS_NOT_ALLOWED`.
+
+**Vercel (front).** Una sola variable, disponible en build (Vite la embebe; cambiarla pide un redeploy):
+
+| Variable | Valor |
+| --- | --- |
+| `VITE_API_URL` | URL https del backend, sin barra final y sin `/api`. Ejemplo ficticio: `https://truequeutn-api.onrender.com` |
+
+El router es `BrowserRouter`. [`client/vercel.json`](client/vercel.json) reescribe todas las rutas a `index.html`, así recargar `/propuestas`, `/perfil` o `/items/1` no devuelve 404 del hosting.
+
+### Fotos
+
+Las fotos de los ítems se guardan en disco local (`server/uploads`, o `UPLOADS_DIR` si está definida) y se sirven en `/uploads`. En el plan de Render sin disco persistente ese directorio se borra al reiniciar o redeployar: los ítems siguen en la base, pero las imágenes dejan de cargar. No hay otro storage en este deploy.
+
+### Migraciones y redeploy
+
+- Cada arranque del backend corre `prisma migrate deploy` y después `node dist/index.js`. Una migración nueva se aplica sola al redeployar el API.
+- Redeploy del API: push a la rama que sigue Render, o **Manual Deploy** en el panel. No hace falta un comando aparte para migrar.
+- Redeploy del front: push a la rama que sigue Vercel, o **Redeploy** en el panel. Hace falta si cambia `VITE_API_URL` o el código del client.
+
+### Seed en producción
+
+No forma parte del build ni del start. `npm run seed` borra usuarios, ítems, propuestas y calificaciones, y carga cuentas de demo con la contraseña `Trueque123`.
+
+Si la demo necesita esos datos, se corre **una sola vez, a mano, sobre una base vacía** (Shell de Render, desde la raíz del repo):
+
+```bash
+npm run seed -w server
+```
+
+Volver a correrlo pisa lo que haya. El registro sigue limitado a `ALLOWED_EMAIL_DOMAIN` (`utn.edu.ar` por defecto). `npm run db:seed:demo` tampoco se engancha al deploy.
+
+### Checklist de prueba de humo
+
+1. `GET <URL_API>/api/health` responde `200` y `{ "status": "ok" }`.
+2. `<URL_FRONT>` carga el login.
+3. Recargar `/login`, `/registro`, `/propuestas` y `/perfil` muestra la app, no un 404 de Vercel.
+4. Entrar con un usuario del seed (si se cargó) o registrarse con un mail `@utn.edu.ar`. Un dominio distinto tiene que rechazarse.
+5. Ver el listado, publicar un ítem y subir una foto. La foto se ve y su URL es https (el mismo host que `<URL_API>`).
+6. Cerrar sesión y volver a entrar.
+7. En Render, `CLIENT_URL` es exactamente `<URL_FRONT>`, sin barra final. Si el navegador muestra un error de CORS, ese valor no coincide.
+
+## Producción
+
+Los links se completan cuando los servicios están publicados.
+
+- Front: `<URL_FRONT>`
+- API: `<URL_API>`
+- Health: `<URL_API>/api/health`
 
 ## Endpoints
 
