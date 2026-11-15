@@ -206,21 +206,19 @@ Volver a correrlo pisa lo que haya. El registro sigue limitado a `ALLOWED_EMAIL_
 
 ### Checklist de prueba de humo
 
-1. `GET <URL_API>/api/health` responde `200` y `{ "status": "ok" }`.
-2. `<URL_FRONT>` carga el login.
+1. `GET https://agiles-grupo11.onrender.com/api/health` responde `200` y `{ "status": "ok" }`.
+2. https://agiles-grupo11.vercel.app carga el login.
 3. Recargar `/login`, `/registro`, `/propuestas` y `/perfil` muestra la app, no un 404 de Vercel.
 4. Entrar con un usuario del seed (si se cargó) o registrarse con un mail `@utn.edu.ar`. Un dominio distinto tiene que rechazarse.
-5. Ver el listado, publicar un ítem y subir una foto. La foto se ve y su URL es https (el mismo host que `<URL_API>`).
+5. Ver el listado, publicar un ítem y subir una foto. La foto se ve y su URL es https (el mismo host que la API).
 6. Cerrar sesión y volver a entrar.
-7. En Render, `CLIENT_URL` es exactamente `<URL_FRONT>`, sin barra final. Si el navegador muestra un error de CORS, ese valor no coincide.
+7. En Render, `CLIENT_URL` es exactamente `https://agiles-grupo11.vercel.app`, sin barra final. Si el navegador muestra un error de CORS, ese valor no coincide.
 
 ## Producción
 
-Los links se completan cuando los servicios están publicados.
-
-- Front: `<URL_FRONT>`
-- API: `<URL_API>`
-- Health: `<URL_API>/api/health`
+- Front: https://agiles-grupo11.vercel.app
+- API: https://agiles-grupo11.onrender.com
+- Health: https://agiles-grupo11.onrender.com/api/health
 
 ## Endpoints
 
