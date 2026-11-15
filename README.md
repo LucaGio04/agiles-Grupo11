@@ -149,6 +149,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                              |
 | GET    | `/api/users/:id`      | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email |
 | GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones                |
+| PATCH  | `/api/proposals/:id`  | Sí   | Cancela una propuesta: `{ accion: "cancelar" }` → `{ data }` en `CANCELADA`, misma vista que el listado    |
 
 `GET /api/users/me/items` usa el id del token, nunca un id de la URL. `status` tiene que ser `DISPONIBLE`, `RESERVADO`, `PAUSADO` o `INTERCAMBIADO`. Un valor inválido responde 400.
 
@@ -204,6 +205,35 @@ Authorization: Bearer <token>
 
 Un id que no existe responde 404. Un id inválido responde 400. Sin token responde 401.
 
+`PATCH /api/proposals/:id` con `{ "accion": "cancelar" }` pasa la propuesta a `CANCELADA`. Solo puede hacerlo quien participa.
+
+- En `PENDIENTE`, solo quien la envió. El receptor ya no puede aceptarla y los ítems no cambian de estado.
+- En `ACEPTADA`, cualquiera de las dos partes. Los ítems que estaban `RESERVADO` vuelven a `DISPONIBLE`.
+- `RECHAZADA`, `CANCELADA` o `CONCRETADA` responden 409. Quien no participa responde 403. Si no existe, 404.
+
+```http
+PATCH /api/proposals/20
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{ "accion": "cancelar" }
+```
+
+La respuesta es `{ data }` con la misma forma que un elemento de `GET /api/proposals`: rol, la otra persona, los ítems y las calificaciones. Si el estado cambió entre la lectura y la escritura, responde 409 y no libera los ítems.
+
+```json
+{
+  "data": {
+    "id": 20,
+    "estado": "CANCELADA",
+    "rol": "proponente",
+    "persona": { "id": 2, "nombre": "Sofía Demo" },
+    "itemSolicitado": { "id": 8, "titulo": "Libro de Sofía", "estado": "DISPONIBLE" },
+    "itemOfrecido": { "id": 4, "titulo": "Apunte de Tomás", "estado": "DISPONIBLE" }
+  }
+}
+```
+
 `GET /api/proposals?status=CONCRETADA` lista solo intercambios donde el usuario es proponente o receptor. Sin `status` devuelve todos los suyos. La calificación es `null` si esa persona todavía no calificó.
 
 ```json
@@ -232,16 +262,17 @@ Un id que no existe responde 404. Un id inválido responde 400. Sin token respon
 
 ## Frontend: rutas y sesión
 
-| Ruta                | Acceso     | Pantalla                                                                                     |
-| ------------------- | ---------- | -------------------------------------------------------------------------------------------- |
-| `/`                 | Con sesión | Inicio: listado con búsqueda (`?q=`), categoría (`?categoria=`) y páginas (`?page=`) (HU-04) |
-| `/login`            | Sin sesión | Inicio de sesión, con link a "Crear cuenta"                                                  |
-| `/registro`         | Sin sesión | Formulario de registro institucional (HU-01)                                                 |
-| `/publicar`         | Con sesión | Formulario para publicar un material (HU-03)                                                 |
-| `/items/:id`        | Con sesión | Detalle de una publicación (HU-05)                                                           |
-| `/items/:id/editar` | Con sesión | Editar, pausar o reactivar una publicación propia (HU-14)                                    |
-| `/perfil`           | Con sesión | Datos personales, publicaciones por estado e historial de intercambios                       |
-| `/usuarios/:id`     | Con sesión | Perfil público de quien publicó un ítem: reputación, intercambios e ítems disponibles        |
+| Ruta                | Acceso     | Pantalla                                                                                        |
+| ------------------- | ---------- | ----------------------------------------------------------------------------------------------- |
+| `/`                 | Con sesión | Inicio: listado con búsqueda (`?q=`), categoría (`?categoria=`) y páginas (`?page=`) (HU-04)    |
+| `/login`            | Sin sesión | Inicio de sesión, con link a "Crear cuenta"                                                     |
+| `/registro`         | Sin sesión | Formulario de registro institucional (HU-01)                                                    |
+| `/publicar`         | Con sesión | Formulario para publicar un material (HU-03)                                                    |
+| `/items/:id`        | Con sesión | Detalle de una publicación (HU-05)                                                              |
+| `/items/:id/editar` | Con sesión | Editar, pausar o reactivar una publicación propia (HU-14)                                       |
+| `/perfil`           | Con sesión | Datos personales, publicaciones por estado e historial de intercambios                          |
+| `/propuestas`       | Con sesión | Propuestas enviadas y recibidas. En una pendiente enviada, o en una aceptada, se puede cancelar |
+| `/usuarios/:id`     | Con sesión | Perfil público de quien publicó un ítem: reputación, intercambios e ítems disponibles           |
 
 La sesión vive en `client/src/auth/`. El token se guarda en `localStorage` y al cargar la app se valida con `GET /api/auth/me`. En los componentes se usa el hook `useAuth()` (`user`, `status`, `login`, `logout`), y las rutas se protegen anidándolas bajo `<PrivateRoute>` (solo con sesión) o `<RedirectIfAuthenticated>` (solo sin sesión). Para llamar a la API usá `apiFetch` de `client/src/lib/api.ts`, que agrega el token y convierte los errores en `ApiError`.
 

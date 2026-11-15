@@ -813,6 +813,72 @@
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
+        },
+        {
+          "name": "Cancelar propuesta",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/proposals/20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"cancelar\"\n}"
+            },
+            "description": "Cancela una propuesta en la que participa el usuario del token. Requiere token.\n\nBody: { accion: \"cancelar\" }.\n\nReglas:\n- Solo quien participa (proponente o receptor) puede cancelarla. Un tercero responde 403.\n- PENDIENTE: solo quien la envió. Queda CANCELADA y el receptor ya no puede aceptarla. Los ítems no cambian de estado.\n- ACEPTADA: cualquiera de las dos partes. Queda CANCELADA y los ítems que estaban RESERVADO vuelven a DISPONIBLE.\n- RECHAZADA, CANCELADA o CONCRETADA no se pueden cancelar (409).\n\nRespuestas:\n- 200 { data } con estado CANCELADA y la misma vista que un elemento del listado\n- 400 VALIDATION_ERROR — id inválido o accion distinta de cancelar\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no participa de la propuesta\n- 404 NOT_FOUND — no existe\n- 409 CONFLICT — pendiente y la quiere cancelar el receptor, o el estado ya no permite cancelarla"
+          },
+          "response": [
+            {
+              "name": "200 - Propuesta cancelada",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"data\": {\n    \"id\": 20,\n    \"estado\": \"CANCELADA\",\n    \"mensaje\": \"¿Lo cambiamos?\",\n    \"createdAt\": \"2026-11-01T00:00:00.000Z\",\n    \"updatedAt\": \"2026-11-15T12:00:00.000Z\",\n    \"rol\": \"proponente\",\n    \"persona\": { \"id\": 2, \"nombre\": \"Sofía Demo\" },\n    \"itemSolicitado\": { \"id\": 8, \"titulo\": \"Libro de Sofía\", \"estado\": \"DISPONIBLE\" },\n    \"itemOfrecido\": { \"id\": 4, \"titulo\": \"Apunte de Tomás\", \"estado\": \"DISPONIBLE\" },\n    \"calificacionDada\": null,\n    \"calificacionRecibida\": null\n  }\n}"
+            },
+            {
+              "name": "403 - No participa",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo podés cancelar una propuesta en la que participás\"\n  }\n}"
+            },
+            {
+              "name": "404 - Propuesta inexistente",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa propuesta\"\n  }\n}"
+            },
+            {
+              "name": "409 - Ya no se puede cancelar",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Esta propuesta ya no se puede cancelar\"\n  }\n}"
+            },
+            {
+              "name": "400 - Acción inválida",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.accion\",\n        \"message\": \"La acción tiene que ser cancelar\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ]
         }
       ]
     }
