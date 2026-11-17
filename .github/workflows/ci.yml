@@ -1,0 +1,43 @@
+name: CI
+
+# Corre en cada Pull Request y en los push a develop y main.
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+# Si se sube otro commit al mismo PR, se cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Lint, build y tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Instala client y server (workspaces). El postinstall del server genera el cliente de Prisma.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (server y client)
+        run: npm run build
+
+      # Los tests del server mockean Prisma: no necesitan una base de datos.
+      - name: Tests
+        run: npm test
