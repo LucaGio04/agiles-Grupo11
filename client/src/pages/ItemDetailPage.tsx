@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
 import { ApiError, apiFetch, createProposal, getMyItems } from '../lib/api.ts';
+import { useToast } from '../components/ui/ToastContext.tsx';
 import {
   CATEGORIAS,
   ESTADOS_CONSERVACION,
@@ -119,6 +120,7 @@ function ProposeModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { showToast } = useToast();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [items, setItems] = useState<Item[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -160,6 +162,7 @@ function ProposeModal({
         itemOfrecidoId: selectedId,
         ...(texto ? { mensaje: texto } : {}),
       });
+      showToast('Tu propuesta quedó pendiente de respuesta.', 'ok');
       onSuccess();
     } catch (err) {
       setError(proposalErrorText(err));
