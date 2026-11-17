@@ -118,3 +118,20 @@ export async function createProposal(
     });
   });
 }
+
+export async function concretarPropuesta(proposalId: number, userId: number) {
+  const proposal = await prisma.proposal.findUnique({ where: { id: proposalId } });
+  if (!proposal) throw AppError.notFound('Propuesta no encontrada');
+  if (proposal.proponenteId !== userId && proposal.receptorId !== userId) {
+    throw AppError.forbidden('No sos participante de esta propuesta');
+  }
+  if (proposal.estado !== 'ACEPTADA') {
+    throw AppError.badRequest('Solo se puede concretar una propuesta ACEPTADA');
+  }
+  await prisma.$transaction([
+    prisma.proposal.update({ where: { id: proposalId }, data: { estado: 'CONCRETADA' } }),
+    prisma.item.update({ where: { id: proposal.itemSolicitadoId }, data: { estado: 'INTERCAMBIADO' } }),
+    prisma.item.update({ where: { id: proposal.itemOfrecidoId }, data: { estado: 'INTERCAMBIADO' } }),
+  ]);
+  return { message: 'Intercambio concretado exitosamente' };
+}

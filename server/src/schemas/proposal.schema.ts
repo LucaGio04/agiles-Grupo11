@@ -30,3 +30,8 @@ export const proposeItemSchema = z.object({
 });
 
 export type ProposeItemInput = z.infer<typeof proposeItemSchema>;
+
+export const updateProposalSchema = z.object({
+  accion: z.enum(['concretar'], { error: 'Acción no válida' }),
+});
+export type UpdateProposalInput = z.infer<typeof updateProposalSchema>;

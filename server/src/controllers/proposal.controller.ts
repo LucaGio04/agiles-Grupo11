@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import type { ListProposalsQuery } from '../schemas/proposal.schema.js';
+import type { ListProposalsQuery, UpdateProposalInput } from '../schemas/proposal.schema.js';
 import * as proposalService from '../services/proposal.service.js';
 
 export const list: RequestHandler = async (req, res) => {
@@ -15,4 +15,12 @@ export const propose: RequestHandler = async (req, res) => {
     req.body
   );
   res.status(201).json({ proposal });
+};
+
+export const update: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const { accion } = req.body as UpdateProposalInput;
+  if (accion === 'concretar') {
+    res.json(await proposalService.concretarPropuesta(id, req.user!.id));
+  }
 };
