@@ -1,6 +1,24 @@
-import type { EstadoItem } from './items.ts';
+import type { Categoria, EstadoItem } from './items.ts';
 
 export type EstadoPropuesta = 'PENDIENTE' | 'ACEPTADA' | 'RECHAZADA' | 'CANCELADA' | 'CONCRETADA';
+
+export const ESTADOS_PROPUESTA: Record<EstadoPropuesta, string> = {
+  PENDIENTE: 'Pendiente',
+  ACEPTADA: 'Aceptada',
+  RECHAZADA: 'Rechazada',
+  CANCELADA: 'Cancelada',
+  CONCRETADA: 'Concretada',
+};
+
+export type TipoPropuesta = 'sent' | 'received';
+
+export type ItemDePropuesta = {
+  id: number;
+  titulo: string;
+  estado: EstadoItem;
+  categoria: Categoria;
+  fotoUrl: string | null;
+};
 
 export type CalificacionResumen = {
   puntaje: number;
@@ -16,8 +34,8 @@ export type Intercambio = {
   updatedAt: string;
   rol: 'proponente' | 'receptor';
   persona: { id: number; nombre: string };
-  itemSolicitado: { id: number; titulo: string; estado: EstadoItem };
-  itemOfrecido: { id: number; titulo: string; estado: EstadoItem };
+  itemSolicitado: ItemDePropuesta;
+  itemOfrecido: ItemDePropuesta;
   calificacionDada: CalificacionResumen | null;
   calificacionRecibida: CalificacionResumen | null;
 };

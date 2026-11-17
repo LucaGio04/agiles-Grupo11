@@ -1,6 +1,6 @@
 import { tokenStorage } from '../auth/tokenStorage.ts';
 import type { EstadoItem, Item } from './items.ts';
-import type { EstadoPropuesta, Intercambio } from './proposals.ts';
+import type { EstadoPropuesta, Intercambio, TipoPropuesta } from './proposals.ts';
 import type { PerfilPublico } from './users.ts';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -91,12 +91,16 @@ export function updateItemEstado(id: number, estado: 'DISPONIBLE' | 'PAUSADO') {
   return apiFetch<{ item: Item }>(`/api/items/${id}`, { method: 'PATCH', body: { estado } });
 }
 
-// Propuestas en las que participa el usuario logueado.
-export function getMyProposals(status?: EstadoPropuesta) {
+// Propuestas en las que participa el usuario logueado. Con `type` trae solo las enviadas o recibidas.
+// `pendientesRecibidas` es el total de recibidas sin responder, sin importar los filtros.
+export function getMyProposals(status?: EstadoPropuesta, type?: TipoPropuesta) {
   const params = new URLSearchParams();
   if (status) params.set('status', status);
+  if (type) params.set('type', type);
   const query = params.toString();
-  return apiFetch<{ data: Intercambio[] }>(`/api/proposals${query ? `?${query}` : ''}`);
+  return apiFetch<{ data: Intercambio[]; pendientesRecibidas: number }>(
+    `/api/proposals${query ? `?${query}` : ''}`
+  );
 }
 
 // Ofrece uno de mis ítems a cambio del ítem solicitado (HU-06). Queda PENDIENTE.

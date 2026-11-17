@@ -16,8 +16,20 @@ const storedProposal = {
   receptorId: 2,
   proponente: { id: 1, nombre: 'Tomás Bellizzi' },
   receptor: { id: 2, nombre: 'Sofía Demo' },
-  itemSolicitado: { id: 8, titulo: 'Libro pausado de Sofía', estado: 'PAUSADO' },
-  itemOfrecido: { id: 4, titulo: 'Instrumental intercambiado', estado: 'INTERCAMBIADO' },
+  itemSolicitado: {
+    id: 8,
+    titulo: 'Libro pausado de Sofía',
+    estado: 'PAUSADO',
+    categoria: 'LIBRO',
+    fotoUrl: null,
+  },
+  itemOfrecido: {
+    id: 4,
+    titulo: 'Instrumental intercambiado',
+    estado: 'INTERCAMBIADO',
+    categoria: 'INSTRUMENTAL',
+    fotoUrl: '/uploads/4.jpg',
+  },
   calificaciones: [
     { puntaje: 5, comentario: 'Genial', evaluadorId: 1, evaluadoId: 2 },
     { puntaje: 4, comentario: null, evaluadorId: 2, evaluadoId: 1 },
@@ -26,9 +38,11 @@ const storedProposal = {
 
 let rows = [storedProposal];
 const findMany = mock.fn(async () => rows);
+let pendientes = 2;
+const count = mock.fn(async () => pendientes);
 
 Object.defineProperty(prisma, 'proposal', {
-  value: { findMany },
+  value: { findMany, count },
   configurable: true,
 });
 
@@ -68,7 +82,9 @@ after(() => {
 describe('GET /api/proposals', () => {
   beforeEach(() => {
     findMany.mock.resetCalls();
+    count.mock.resetCalls();
     rows = [storedProposal];
+    pendientes = 2;
   });
 
   it('devuelve las propuestas del usuario con la otra persona, los ítems y las calificaciones', async () => {
@@ -86,8 +102,20 @@ describe('GET /api/proposals', () => {
       updatedAt: '2026-10-20T00:00:00.000Z',
       rol: 'proponente',
       persona: { id: 2, nombre: 'Sofía Demo' },
-      itemSolicitado: { id: 8, titulo: 'Libro pausado de Sofía', estado: 'PAUSADO' },
-      itemOfrecido: { id: 4, titulo: 'Instrumental intercambiado', estado: 'INTERCAMBIADO' },
+      itemSolicitado: {
+        id: 8,
+        titulo: 'Libro pausado de Sofía',
+        estado: 'PAUSADO',
+        categoria: 'LIBRO',
+        fotoUrl: null,
+      },
+      itemOfrecido: {
+        id: 4,
+        titulo: 'Instrumental intercambiado',
+        estado: 'INTERCAMBIADO',
+        categoria: 'INSTRUMENTAL',
+        fotoUrl: '/uploads/4.jpg',
+      },
       calificacionDada: { puntaje: 5, comentario: 'Genial' },
       calificacionRecibida: { puntaje: 4, comentario: null },
     });
@@ -127,6 +155,48 @@ describe('GET /api/proposals', () => {
     assert.deepEqual(lastQuery().where, {
       OR: [{ proponenteId: 1 }, { receptorId: 1 }],
     });
+  });
+
+  it('type=sent limita a las propuestas que envió el usuario', async () => {
+    const res = await listProposals('?type=sent');
+    assert.equal(res.status, 200);
+    assert.deepEqual(lastQuery().where, { proponenteId: 1 });
+  });
+
+  it('type=received limita a las recibidas y se combina con status', async () => {
+    const res = await listProposals('?type=received&status=PENDIENTE');
+    assert.equal(res.status, 200);
+    assert.deepEqual(lastQuery().where, { receptorId: 1, estado: 'PENDIENTE' });
+  });
+
+  it('un type inválido responde 400 y no consulta la base', async () => {
+    const res = await listProposals('?type=otro');
+    assert.equal(res.status, 400);
+    const { error } = (await res.json()) as ErrorResponse;
+    assert.equal(error.details?.[0].field, 'query.type');
+    assert.equal(findMany.mock.callCount(), 0);
+  });
+
+  it('informa cuántas recibidas pendientes tiene el usuario, sin importar los filtros', async () => {
+    const res = await listProposals('?type=sent&status=CONCRETADA');
+    const body = (await res.json()) as { pendientesRecibidas: number };
+    assert.equal(body.pendientesRecibidas, 2);
+    assert.deepEqual(count.mock.calls[0].arguments[0], {
+      where: { receptorId: 1, estado: 'PENDIENTE' },
+    });
+  });
+
+  it('pone primero las recibidas pendientes y deja el resto por última actividad', async () => {
+    rows = [
+      { ...storedProposal, id: 10, estado: 'ACEPTADA', receptorId: 1, proponenteId: 2 },
+      { ...storedProposal, id: 11, estado: 'PENDIENTE', receptorId: 2, proponenteId: 1 },
+      { ...storedProposal, id: 12, estado: 'PENDIENTE', receptorId: 1, proponenteId: 2 },
+    ];
+    const body = (await (await listProposals()).json()) as { data: Array<{ id: number }> };
+    assert.deepEqual(
+      body.data.map((proposal) => proposal.id),
+      [12, 10, 11]
+    );
   });
 
   it('un estado inválido responde 400 y no consulta la base', async () => {
