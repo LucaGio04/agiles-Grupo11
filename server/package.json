@@ -10,6 +10,7 @@
     "test": "tsx --import ./test/setup.ts --test \"test/**/*.test.ts\"",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
