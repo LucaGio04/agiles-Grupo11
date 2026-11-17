@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router';
 import { PrivateRoute, RedirectIfAuthenticated } from './auth/guards.tsx';
 import { Layout } from './components/layout/Layout.tsx';
 import { ProfileCard } from './components/profile/ProfileCard.tsx';
+import { ToastProvider } from './components/ui/ToastContext.tsx';
 import { ItemDetailPage } from './pages/ItemDetailPage.tsx';
 import { ItemsPage } from './pages/ItemsPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
@@ -15,47 +16,49 @@ import './styles/ui.css';
 
 function App() {
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <RedirectIfAuthenticated>
-            <LoginPage />
-          </RedirectIfAuthenticated>
-        }
-      />
-      <Route
-        path="/registro"
-        element={
-          <RedirectIfAuthenticated>
-            <RegisterPage />
-          </RedirectIfAuthenticated>
-        }
-      />
+    <ToastProvider>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <RedirectIfAuthenticated>
+              <LoginPage />
+            </RedirectIfAuthenticated>
+          }
+        />
+        <Route
+          path="/registro"
+          element={
+            <RedirectIfAuthenticated>
+              <RegisterPage />
+            </RedirectIfAuthenticated>
+          }
+        />
 
-      <Route element={<PrivateRoute />}>
-        <Route element={<Layout />}>
-          <Route path="/" element={<ItemsPage />} />
-          <Route path="/items/:id" element={<ItemDetailPage />} />
-          {/* Key distinta: al pasar de editar a publicar el formulario se monta de cero. */}
-          <Route path="/items/:id/editar" element={<PublicarPage key="editar" />} />
-          <Route path="/publicar" element={<PublicarPage key="publicar" />} />
-          <Route path="/propuestas" element={<PropuestasPage />} />
-          <Route
-            path="/perfil"
-            element={
-              <>
-                <ProfileCard />
-                <PerfilPage />
-              </>
-            }
-          />
-          <Route path="/usuarios/:id" element={<UsuarioPerfilPage />} />
+        <Route element={<PrivateRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/" element={<ItemsPage />} />
+            <Route path="/items/:id" element={<ItemDetailPage />} />
+            {/* Key distinta: al pasar de editar a publicar el formulario se monta de cero. */}
+            <Route path="/items/:id/editar" element={<PublicarPage key="editar" />} />
+            <Route path="/publicar" element={<PublicarPage key="publicar" />} />
+            <Route path="/propuestas" element={<PropuestasPage />} />
+            <Route
+              path="/perfil"
+              element={
+                <>
+                  <ProfileCard />
+                  <PerfilPage />
+                </>
+              }
+            />
+            <Route path="/usuarios/:id" element={<UsuarioPerfilPage />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </ToastProvider>
   );
 }
 
