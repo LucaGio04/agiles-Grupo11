@@ -149,6 +149,7 @@ La colección de Postman con todos los endpoints, ejemplos y respuestas está en
 | GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                              |
 | GET    | `/api/users/:id`      | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email |
 | GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones                |
+| PATCH  | `/api/proposals/:id`  | Sí   | Ejecuta una acción sobre una propuesta: `{ accion: "concretar" }` pasa a CONCRETADA y los ítems a INTERCAMBIADO (HU-17) |
 
 `GET /api/users/me/items` usa el id del token, nunca un id de la URL. `status` tiene que ser `DISPONIBLE`, `RESERVADO`, `PAUSADO` o `INTERCAMBIADO`. Un valor inválido responde 400.
 
