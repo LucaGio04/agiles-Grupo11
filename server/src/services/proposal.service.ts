@@ -2,6 +2,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { AppError } from '../errors/AppError.js';
 import { prisma } from '../lib/prisma.js';
 import type { ListProposalsQuery, ProposeItemInput } from '../schemas/proposal.schema.js';
+import type { CreateRatingInput } from '../schemas/rating.schema.js';
 
 type RatingRow = { puntaje: number; comentario: string | null };
 
@@ -118,3 +119,42 @@ export async function createProposal(
     });
   });
 }
+
+// Califica un intercambio concretado (HU-09). Solo participantes, una vez por parte.
+export async function calificarIntercambio(
+  proposalId: number,
+  evaluadorId: number,
+  data: CreateRatingInput
+) {
+  const proposal = await prisma.proposal.findUnique({ where: { id: proposalId } });
+  if (!proposal) throw AppError.notFound('Propuesta no encontrada');
+
+  if (proposal.proponenteId !== evaluadorId && proposal.receptorId !== evaluadorId) {
+    throw AppError.forbidden('No sos participante de esta propuesta');
+  }
+
+  if (proposal.estado !== 'CONCRETADA') {
+    throw AppError.badRequest('Solo podés calificar un intercambio CONCRETADO');
+  }
+
+  const evaluadoId =
+    proposal.proponenteId === evaluadorId ? proposal.receptorId : proposal.proponenteId;
+
+  try {
+    return await prisma.rating.create({
+      data: {
+        proposalId,
+        evaluadorId,
+        evaluadoId,
+        puntaje: data.puntaje,
+        comentario: data.comentario,
+      },
+    });
+  } catch (e) {
+    if ((e as { code?: string }).code === 'P2002') {
+      throw AppError.conflict('Ya calificaste este intercambio');
+    }
+    throw e;
+  }
+}
+

@@ -3,6 +3,7 @@ import * as proposalController from '../controllers/proposal.controller.js';
 import { requireAuth } from '../middlewares/requireAuth.js';
 import { validate } from '../middlewares/validate.js';
 import { listProposalsQuerySchema } from '../schemas/proposal.schema.js';
+import { createRatingSchema } from '../schemas/rating.schema.js';
 
 const router = Router();
 
@@ -12,5 +13,13 @@ router.get(
   validate({ query: listProposalsQuerySchema }),
   proposalController.list
 );
+
+router.post(
+  '/:id/rate',
+  requireAuth,
+  validate({ body: createRatingSchema }),
+  proposalController.rate
+);
+
 
 export default router;
