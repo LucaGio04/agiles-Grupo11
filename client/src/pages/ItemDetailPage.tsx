@@ -5,11 +5,12 @@ import { ItemPhoto } from '../components/items/ItemPhoto.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
-import { ApiError, apiFetch } from '../lib/api.ts';
+import { ApiError, apiFetch, createProposal, getMyItems } from '../lib/api.ts';
 import {
   CATEGORIAS,
   ESTADOS_CONSERVACION,
   ESTADOS_ITEM,
+  type Item,
   type ItemDetail,
   type ItemOwner,
 } from '../lib/items.ts';
@@ -89,6 +90,180 @@ function DeleteModal({
   );
 }
 
+const MENSAJE_MAX = 300;
+
+function proposalErrorText(err: unknown) {
+  if (!(err instanceof ApiError)) {
+    return 'No se pudo enviar la propuesta. Intentá de nuevo.';
+  }
+  const detail = Array.isArray(err.details) ? err.details[0] : undefined;
+  if (
+    err.status === 400 &&
+    detail &&
+    typeof detail === 'object' &&
+    'message' in detail &&
+    typeof detail.message === 'string'
+  ) {
+    return detail.message;
+  }
+  return err.message;
+}
+
+// Modal para ofrecer uno de mis ítems a cambio (HU-06).
+function ProposeModal({
+  itemId,
+  onClose,
+  onSuccess,
+}: {
+  itemId: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [items, setItems] = useState<Item[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [mensaje, setMensaje] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getMyItems('DISPONIBLE')
+      .then((res) => {
+        if (!cancelled) setItems(res.data);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          err instanceof ApiError ? err.message : 'No se pudieron cargar tus publicaciones.'
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
+    if (submitting) return;
+    if (e.target === dialogRef.current) onClose();
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (selectedId === null) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const texto = mensaje.trim();
+      await createProposal(itemId, {
+        itemOfrecidoId: selectedId,
+        ...(texto ? { mensaje: texto } : {}),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(proposalErrorText(err));
+      setSubmitting(false);
+    }
+  }
+
+  const disponibles = items ?? [];
+
+  return (
+    <dialog
+      ref={dialogRef}
+      open
+      className="modal-backdrop"
+      onClick={handleBackdropClick}
+      aria-labelledby="propose-modal-title"
+    >
+      <div className="modal propose-modal" role="document">
+        <h2 id="propose-modal-title">Proponer intercambio</h2>
+        <p>Elegí uno de tus ítems disponibles para ofrecer a cambio.</p>
+
+        {items === null && !loadError && <Loader label="Cargando tus publicaciones..." />}
+        {loadError && (
+          <p className="form-error" role="alert">
+            {loadError}
+          </p>
+        )}
+        {items && disponibles.length === 0 && (
+          <p>
+            No tenés ítems disponibles para ofrecer. <Link to="/publicar">Publicar</Link>
+          </p>
+        )}
+
+        {disponibles.length > 0 && (
+          <form onSubmit={handleSubmit}>
+            <fieldset className="propose-fieldset">
+              <legend>Elegí qué ofrecer</legend>
+              <ul className="propose-list">
+                {disponibles.map((item) => (
+                  <li key={item.id}>
+                    <label className="propose-option">
+                      <input
+                        type="radio"
+                        name="itemOfrecidoId"
+                        value={item.id}
+                        checked={selectedId === item.id}
+                        onChange={() => setSelectedId(item.id)}
+                        required
+                      />
+                      <span>
+                        {item.titulo}
+                        {item.materia && <span className="muted"> · {item.materia}</span>}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+
+            <label className="field" htmlFor="propuesta-mensaje">
+              <span>Mensaje (opcional)</span>
+              <textarea
+                id="propuesta-mensaje"
+                name="mensaje"
+                rows={3}
+                maxLength={MENSAJE_MAX}
+                placeholder="Contale por qué te interesa el cambio"
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+              />
+              <span className="field-hint propose-count">
+                {mensaje.length}/{MENSAJE_MAX}
+              </span>
+            </label>
+
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+
+            <div className="modal-actions">
+              <Button variant="secondary" onClick={onClose} disabled={submitting}>
+                Cancelar
+              </Button>
+              <Button type="submit" loading={submitting} disabled={selectedId === null}>
+                Enviar propuesta
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {items && disponibles.length === 0 && (
+          <div className="modal-actions">
+            <Button variant="secondary" onClick={onClose}>
+              Cerrar
+            </Button>
+          </div>
+        )}
+      </div>
+    </dialog>
+  );
+}
+
 // Detalle de una publicación (HU-05).
 export function ItemDetailPage() {
   const { id } = useParams();
@@ -101,6 +276,10 @@ export function ItemDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Propuesta de intercambio (HU-06).
+  const [showProposeModal, setShowProposeModal] = useState(false);
+  const [proposalNotice, setProposalNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,6 +347,11 @@ export function ItemDetailPage() {
       {flash && (
         <p className="form-success item-detail-flash" role="status">
           {flash}
+        </p>
+      )}
+      {proposalNotice && (
+        <p className="form-success item-detail-flash" role="status">
+          {proposalNotice}
         </p>
       )}
 
@@ -252,20 +436,12 @@ export function ItemDetailPage() {
               </Button>
             </>
           ) : disponible ? (
-            // El flujo de propuestas es del sprint 3 (HU-06).
-            <Button disabled title="Próximamente">
-              Proponer intercambio
-            </Button>
+            <Button onClick={() => setShowProposeModal(true)}>Proponer intercambio</Button>
           ) : (
             <p className="muted">
               Este material está {ESTADOS_ITEM[item.estado].toLowerCase()}: por ahora no recibe
               propuestas.
             </p>
-          )}
-          {!isMine && disponible && (
-            <span className="field-hint">
-              Las propuestas de intercambio van a estar disponibles muy pronto.
-            </span>
           )}
         </div>
       </div>
@@ -279,6 +455,17 @@ export function ItemDetailPage() {
           }}
           loading={deleting}
           error={deleteError}
+        />
+      )}
+
+      {showProposeModal && (
+        <ProposeModal
+          itemId={item.id}
+          onClose={() => setShowProposeModal(false)}
+          onSuccess={() => {
+            setShowProposeModal(false);
+            setProposalNotice('Tu propuesta quedó pendiente.');
+          }}
         />
       )}
     </article>

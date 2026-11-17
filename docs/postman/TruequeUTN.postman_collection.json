@@ -5,8 +5,14 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3001/api" },
-    { "key": "token", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -38,7 +44,12 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/auth/register",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Lucas Romero\",\n  \"email\": \"lucas.romero@utn.edu.ar\",\n  \"password\": \"Trueque1234\",\n  \"carrera\": \"Ingeniería en Sistemas\"\n}"
@@ -50,21 +61,36 @@
               "name": "201 - Cuenta creada",
               "status": "Created",
               "code": 201,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"user\": {\n    \"id\": 6,\n    \"nombre\": \"Lucas Romero\",\n    \"email\": \"lucas.romero@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\"\n  },\n  \"token\": \"<jwt>\"\n}"
             },
             {
               "name": "400 - Email no institucional",
               "status": "Bad Request",
               "code": 400,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.email\",\n        \"message\": \"Usá tu mail institucional\"\n      }\n    ]\n  }\n}"
             },
             {
               "name": "409 - Email duplicado",
               "status": "Conflict",
               "code": 409,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Ese email ya tiene una cuenta\"\n  }\n}"
             }
           ]
@@ -87,7 +113,12 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/auth/login",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"tomas@utn.edu.ar\",\n  \"password\": \"Trueque123\"\n}"
@@ -99,14 +130,24 @@
               "name": "200 - Credenciales correctas",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"email\": \"tomas@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\"\n  },\n  \"token\": \"<jwt>\"\n}"
             },
             {
               "name": "401 - Credenciales incorrectas",
               "status": "Unauthorized",
               "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"INVALID_CREDENTIALS\",\n    \"message\": \"Email o contraseña incorrectos\"\n  }\n}"
             }
           ]
@@ -118,7 +159,13 @@
             "url": "{{baseUrl}}/auth/me",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Devuelve el usuario del token. El front lo usa al recargar la página para restaurar la sesión.\n\nHeader: Authorization: Bearer <token> (se completa solo después de correr Login).\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera } }\n- 401 UNAUTHORIZED — sin token, token vencido o adulterado, o el usuario ya no existe"
           }
@@ -617,7 +664,13 @@
             "url": "{{baseUrl}}/users/me/items",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Ítems del usuario del token, del más reciente al más antiguo. Requiere token. El id no se manda en la URL.\n\nSin query devuelve todos los estados, pausados incluidos. `?status=` filtra por DISPONIBLE, RESERVADO, PAUSADO o INTERCAMBIADO. `?status=` vacío equivale a no filtrar.\n\nRespuestas:\n- 200 { data: Item[] }\n- 400 VALIDATION_ERROR — status no es un estado de ítem. details: \"El estado no es válido\"\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
@@ -626,7 +679,12 @@
               "name": "200 - Todos los míos",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": 4,\n      \"titulo\": \"Demo: Calculadora pausada\",\n      \"descripcion\": \"Ítem de demo en estado pausado. Solo lo ve el dueño.\",\n      \"categoria\": \"CALCULADORA\",\n      \"estadoConservacion\": \"BUENO\",\n      \"materia\": \"Física I\",\n      \"fotoUrl\": null,\n      \"estado\": \"PAUSADO\",\n      \"ownerId\": 1,\n      \"createdAt\": \"2026-10-28T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-28T15:00:00.000Z\"\n    }\n  ]\n}"
             }
           ]
@@ -638,7 +696,13 @@
             "url": "{{baseUrl}}/users/me/items?status=PAUSADO",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Igual que Mis publicaciones, filtrando por status. Probá status=NO_EXISTE para ver el 400."
           },
@@ -647,21 +711,36 @@
               "name": "200 - Solo pausados",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": 4,\n      \"titulo\": \"Demo: Calculadora pausada\",\n      \"estado\": \"PAUSADO\",\n      \"ownerId\": 1\n    }\n  ],\n  \"pendientesRecibidas\": 0\n}"
             },
             {
               "name": "400 - Estado inválido",
               "status": "Bad Request",
               "code": 400,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"query.status\",\n        \"message\": \"El estado no es válido\"\n      }\n    ]\n  }\n}"
             },
             {
               "name": "401 - Sin token",
               "status": "Unauthorized",
               "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
@@ -673,7 +752,13 @@
             "url": "{{baseUrl}}/users/7",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Perfil público de un estudiante. Requiere token. El :id va después de /users/me/items para que \"me\" no se lea como id.\n\nDevuelve nombre, carrera, fecha de alta, reputación (promedio a un decimal o null), cantidad de reseñas, intercambios CONCRETADA en los que participa, ítems DISPONIBLE y las últimas 5 calificaciones recibidas (puntaje, comentario, fecha y nombre de quien calificó).\n\nNunca incluye email ni passwordHash.\n\nRespuestas:\n- 200 { data }\n- 400 VALIDATION_ERROR — id no es un entero positivo\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — no existe ese estudiante"
           },
@@ -682,21 +767,36 @@
               "name": "200 - Perfil público",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"data\": {\n    \"id\": 7,\n    \"nombre\": \"Ana Demo\",\n    \"carrera\": \"Ingeniería en Sistemas\",\n    \"createdAt\": \"2026-03-01T12:00:00.000Z\",\n    \"reputacionPromedio\": 4.3,\n    \"cantidadResenas\": 2,\n    \"cantidadIntercambios\": 1,\n    \"items\": [\n      {\n        \"id\": 4,\n        \"titulo\": \"Apunte de álgebra\",\n        \"descripcion\": null,\n        \"categoria\": \"APUNTE\",\n        \"estadoConservacion\": \"BUENO\",\n        \"materia\": \"Álgebra\",\n        \"fotoUrl\": null,\n        \"estado\": \"DISPONIBLE\",\n        \"ownerId\": 7,\n        \"createdAt\": \"2026-03-01T12:00:00.000Z\",\n        \"updatedAt\": \"2026-03-01T12:00:00.000Z\"\n      }\n    ],\n    \"ultimasCalificaciones\": [\n      {\n        \"id\": 9,\n        \"puntaje\": 5,\n        \"comentario\": \"El intercambio fue claro.\",\n        \"createdAt\": \"2026-03-01T12:00:00.000Z\",\n        \"evaluador\": { \"id\": 2, \"nombre\": \"Sofía Demo\" }\n      }\n    ]\n  }\n}"
             },
             {
               "name": "404 - Estudiante inexistente",
               "status": "Not Found",
               "code": 404,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos a ese estudiante\"\n  }\n}"
             },
             {
               "name": "401 - Sin token",
               "status": "Unauthorized",
               "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
@@ -713,7 +813,13 @@
             "url": "{{baseUrl}}/proposals?status=CONCRETADA",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Propuestas en las que participa el usuario del token, de la más reciente a la más antigua. Requiere token.\n\n`type` es opcional: `sent` (las que envió) o `received` (las que recibió). Sin type devuelve ambas.\n`status` es opcional: PENDIENTE, ACEPTADA, RECHAZADA, CANCELADA o CONCRETADA. Sin status devuelve todos los estados. No incluye propuestas de terceros.\n\nLas recibidas PENDIENTES van primero; el resto, de la más reciente a la más antigua. `pendientesRecibidas` es el total de recibidas sin responder, sin importar los filtros (contador de la pestaña Recibidas).\n\nCada elemento trae:\n- rol: proponente o receptor, según el token\n- persona: la otra persona (id y nombre, sin email)\n- itemSolicitado e itemOfrecido: id, titulo, estado, categoria y fotoUrl (null si no tiene)\n- calificacionDada y calificacionRecibida: { puntaje, comentario } o null si falta\n\nRespuestas:\n- 200 { data, pendientesRecibidas }\n- 400 VALIDATION_ERROR — status no es un estado de propuesta o type no es sent/received\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
@@ -722,21 +828,150 @@
               "name": "200 - Intercambios concretados",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"demo:intercambio-con-calificacion\",\n      \"createdAt\": \"2026-10-20T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-28T15:00:00.000Z\",\n      \"rol\": \"proponente\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\", \"categoria\": \"LIBRO\", \"fotoUrl\": null },\n      \"itemOfrecido\": { \"id\": 5, \"titulo\": \"Demo: Instrumental intercambiado\", \"estado\": \"INTERCAMBIADO\", \"categoria\": \"INSTRUMENTAL\", \"fotoUrl\": null },\n      \"calificacionDada\": { \"puntaje\": 5, \"comentario\": \"El intercambio fue claro y rápido.\" },\n      \"calificacionRecibida\": { \"puntaje\": 4, \"comentario\": \"El material estaba como lo describió.\" }\n    },\n    {\n      \"id\": 2,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"demo:intercambio-sin-calificacion\",\n      \"createdAt\": \"2026-10-21T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-27T15:00:00.000Z\",\n      \"rol\": \"receptor\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 2, \"titulo\": \"Demo: Análisis Matemático disponible\", \"estado\": \"DISPONIBLE\", \"categoria\": \"APUNTE\", \"fotoUrl\": null },\n      \"itemOfrecido\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\", \"categoria\": \"LIBRO\", \"fotoUrl\": null },\n      \"calificacionDada\": null,\n      \"calificacionRecibida\": null\n    }\n  ],\n  \"pendientesRecibidas\": 0\n}"
             },
             {
               "name": "400 - Estado inválido",
               "status": "Bad Request",
               "code": 400,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"query.status\",\n        \"message\": \"El estado de la propuesta no es válido\"\n      }\n    ]\n  }\n}"
             },
             {
               "name": "401 - Sin token",
               "status": "Unauthorized",
               "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Proponer intercambio",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items/8/propose",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemOfrecidoId\": 4,\n  \"mensaje\": \"¿Lo cambiamos?\"\n}"
+            },
+            "description": "Propone un intercambio sobre un ítem ajeno (HU-06). Requiere token.\n\nURL: el :id es el ítem solicitado.\nBody: { itemOfrecidoId, mensaje? }.\n- itemOfrecidoId: id de un ítem DISPONIBLE del usuario del token.\n- mensaje: opcional, hasta 300 caracteres. Vacío se toma como no enviado.\n- El proponente es el usuario del token y el receptor es el dueño del ítem solicitado. Esos ids no se aceptan en el body.\n\nReglas:\n- El ítem solicitado y el ofrecido tienen que existir y estar DISPONIBLES. Un ítem eliminado responde igual que uno inexistente.\n- No se puede proponer sobre un ítem propio.\n- El ítem ofrecido tiene que ser del usuario autenticado.\n- No puede haber dos propuestas PENDIENTES para el mismo par (solicitado, ofrecido). Una propuesta en otro estado no bloquea.\n- La propuesta se crea en PENDIENTE.\n\nRespuestas:\n- 201 { proposal }\n- 400 BAD_REQUEST — ítem propio, ítem no disponible o el ofrecido no es propio\n- 400 VALIDATION_ERROR — falta itemOfrecidoId o el mensaje supera los 300 caracteres\n- 404 NOT_FOUND — no existe el ítem solicitado o el ofrecido\n- 409 CONFLICT — ya hay una propuesta pendiente para ese par\n- 401 UNAUTHORIZED — sin token o token vencido"
+          },
+          "response": [
+            {
+              "name": "201 - Propuesta pendiente",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"proposal\": {\n    \"id\": 20,\n    \"itemSolicitadoId\": 8,\n    \"itemOfrecidoId\": 4,\n    \"proponenteId\": 1,\n    \"receptorId\": 2,\n    \"mensaje\": \"¿Lo cambiamos?\",\n    \"estado\": \"PENDIENTE\",\n    \"createdAt\": \"2026-11-13T12:00:00.000Z\",\n    \"updatedAt\": \"2026-11-13T12:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "400 - Ítem propio",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"BAD_REQUEST\",\n    \"message\": \"No podés proponer un intercambio sobre tu propia publicación\"\n  }\n}"
+            },
+            {
+              "name": "400 - Mensaje demasiado largo",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.mensaje\",\n        \"message\": \"El mensaje puede tener hasta 300 caracteres\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "404 - Ítem solicitado inexistente",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}"
+            },
+            {
+              "name": "404 - Ítem ofrecido inexistente",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos el ítem que querés ofrecer\"\n  }\n}"
+            },
+            {
+              "name": "409 - Propuesta pendiente duplicada",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Ya tenés una propuesta pendiente para este intercambio\"\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
@@ -748,10 +983,24 @@
             "url": "{{baseUrl}}/proposals/9",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"accion\": \"aceptar\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"aceptar\"\n}"
+            },
             "description": "El receptor de una propuesta PENDIENTE la acepta o la rechaza. Requiere token.\n\nBody: { accion: \"aceptar\" | \"rechazar\" }\n\nAl aceptar, en una transacción: la propuesta pasa a ACEPTADA, ambos ítems a RESERVADO y el resto de las propuestas pendientes sobre esos ítems a RECHAZADA. Ambos usuarios ven el email del otro (persona.email) mientras la propuesta esté ACEPTADA o CONCRETADA.\nAl rechazar, la propuesta pasa a RECHAZADA y los ítems siguen DISPONIBLES.\n\nRespuestas:\n- 200 { data } — la propuesta actualizada, vista por quien responde\n- 400 VALIDATION_ERROR — id o acción inválidos\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no sos el receptor de la propuesta\n- 404 NOT_FOUND — la propuesta no existe\n- 409 CONFLICT — la propuesta ya no está pendiente, o alguno de los ítems ya no está disponible"
           },
           "response": [
@@ -759,35 +1008,60 @@
               "name": "200 - Propuesta aceptada",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"data\": {\n    \"id\": 9,\n    \"estado\": \"ACEPTADA\",\n    \"mensaje\": \"¿Lo cambiamos?\",\n    \"createdAt\": \"2026-11-01T15:00:00.000Z\",\n    \"updatedAt\": \"2026-11-02T15:00:00.000Z\",\n    \"rol\": \"receptor\",\n    \"persona\": {\n      \"id\": 3,\n      \"nombre\": \"Tomás Bellizzi\",\n      \"email\": \"tomas@utn.edu.ar\"\n    },\n    \"itemSolicitado\": {\n      \"id\": 8,\n      \"titulo\": \"Demo: Libro de Sofía\",\n      \"estado\": \"RESERVADO\",\n      \"categoria\": \"LIBRO\",\n      \"fotoUrl\": null\n    },\n    \"itemOfrecido\": {\n      \"id\": 5,\n      \"titulo\": \"Demo: Apunte de Tomás\",\n      \"estado\": \"RESERVADO\",\n      \"categoria\": \"APUNTE\",\n      \"fotoUrl\": null\n    },\n    \"calificacionDada\": null,\n    \"calificacionRecibida\": null\n  }\n}"
             },
             {
               "name": "403 - No es el receptor",
               "status": "Forbidden",
               "code": 403,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo quien recibió la propuesta puede aceptarla o rechazarla\"\n  }\n}"
             },
             {
               "name": "404 - No existe",
               "status": "Not Found",
               "code": 404,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"La propuesta no existe\"\n  }\n}"
             },
             {
               "name": "409 - Ya no está pendiente",
               "status": "Conflict",
               "code": 409,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"La propuesta ya no está pendiente\"\n  }\n}"
             },
             {
               "name": "400 - Acción inválida",
               "status": "Bad Request",
               "code": 400,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.accion\",\n        \"message\": \"La acción debe ser \\\"aceptar\\\" o \\\"rechazar\\\"\"\n      }\n    ]\n  }\n}"
             }
           ]
