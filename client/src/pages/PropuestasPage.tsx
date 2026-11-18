@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.tsx';
 import { ItemPhoto } from '../components/items/ItemPhoto.tsx';
+import { RatingModal } from '../components/proposals/RatingModal.tsx';
 import { Button } from '../components/ui/Button.tsx';
 import { Card } from '../components/ui/Card.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
@@ -187,6 +188,7 @@ function PropuestaCard({
   const [accion, setAccion] = useState<Accion | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calificando, setCalificando] = useState(false);
 
   async function confirmar() {
     if (!accion) return;
@@ -209,6 +211,8 @@ function PropuestaCard({
 
   const pendienteRecibida = propuesta.rol === 'receptor' && propuesta.estado === 'PENDIENTE';
   const aceptada = propuesta.estado === 'ACEPTADA';
+  // Cada parte califica una vez a la otra, solo después de concretar (HU-09).
+  const puedeCalificar = propuesta.estado === 'CONCRETADA' && !propuesta.calificacionDada;
   // Una pendiente la cancela solo quien la envió; una aceptada, cualquiera de las partes (HU-16).
   const puedeCancelar =
     aceptada || (propuesta.estado === 'PENDIENTE' && propuesta.rol === 'proponente');
@@ -274,6 +278,33 @@ function PropuestaCard({
             </Button>
           )}
         </div>
+      )}
+
+      {propuesta.calificacionDada && (
+        <p className="muted">
+          Calificaste con {propuesta.calificacionDada.puntaje}/5
+          {propuesta.calificacionDada.comentario
+            ? `: “${propuesta.calificacionDada.comentario}”`
+            : ''}
+        </p>
+      )}
+      {puedeCalificar && (
+        <div className="proposal-actions">
+          <Button onClick={() => setCalificando(true)}>
+            Calificar a {propuesta.persona.nombre}
+          </Button>
+        </div>
+      )}
+      {calificando && (
+        <RatingModal
+          proposalId={propuesta.id}
+          nombreContraparte={propuesta.persona.nombre}
+          onClose={() => setCalificando(false)}
+          onSuccess={() => {
+            setCalificando(false);
+            onChanged();
+          }}
+        />
       )}
 
       {accion && (

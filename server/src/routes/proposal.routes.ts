@@ -7,6 +7,7 @@ import {
   proposalIdParamsSchema,
   updateProposalSchema,
 } from '../schemas/proposal.schema.js';
+import { createRatingSchema } from '../schemas/rating.schema.js';
 
 const router = Router();
 
@@ -22,6 +23,13 @@ router.patch(
   requireAuth,
   validate({ params: proposalIdParamsSchema, body: updateProposalSchema }),
   proposalController.update
+);
+
+router.post(
+  '/:id/rate',
+  requireAuth,
+  validate({ body: createRatingSchema }),
+  proposalController.rate
 );
 
 export default router;

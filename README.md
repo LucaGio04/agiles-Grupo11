@@ -232,24 +232,25 @@ npx newman run docs/postman/TruequeUTN.postman_collection.json --working-dir doc
 
 `--working-dir` hace falta para que encuentre `foto-prueba.png`, la imagen que usa el request "Subir foto". En el Runner de Postman, apuntá el _Working directory_ a `docs/postman`. Si algún request falla, newman termina con código distinto de 0.
 
-| Método | Ruta                  | Auth | Descripción                                                                                                             |
-| ------ | --------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/health`         | No   | Estado del server                                                                                                       |
-| POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                                                |
-| POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                                               |
-| GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                                            |
-| GET    | `/api/users/me`       | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)                                                             |
-| PATCH  | `/api/users/me`       | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                                              |
-| GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                                        |
-| POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                                |
-| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno o un `ELIMINADO` responde 404              |
-| PATCH  | `/api/items/:id`      | Sí   | Edita un ítem propio, o lo pausa y reactiva: `{ item }` (HU-14)                                                         |
-| DELETE | `/api/items/:id`      | Sí   | Elimina lógicamente un ítem propio y cancela sus propuestas pendientes: 204 (HU-15)                                     |
-| POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                                             |
-| GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                                           |
-| GET    | `/api/users/:id`      | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email              |
-| GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones                             |
-| PATCH  | `/api/proposals/:id`  | Sí   | Ejecuta una acción sobre una propuesta: `{ accion: "concretar" }` pasa a CONCRETADA y los ítems a INTERCAMBIADO (HU-17) |
+| Método | Ruta                      | Auth | Descripción                                                                                                           |
+| ------ | ------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/health`             | No   | Estado del server                                                                                                     |
+| POST   | `/api/auth/register`      | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                                              |
+| POST   | `/api/auth/login`         | No   | Inicia sesión: devuelve `{ user, token }`                                                                             |
+| GET    | `/api/auth/me`            | Sí   | Usuario del token (para restaurar la sesión)                                                                          |
+| GET    | `/api/users/me`           | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)                                                           |
+| PATCH  | `/api/users/me`           | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                                            |
+| GET    | `/api/items`              | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                                      |
+| POST   | `/api/items`              | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                              |
+| GET    | `/api/items/:id`          | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno o un `ELIMINADO` responde 404            |
+| PATCH  | `/api/items/:id`          | Sí   | Edita un ítem propio, o lo pausa y reactiva: `{ item }` (HU-14)                                                       |
+| DELETE | `/api/items/:id`          | Sí   | Elimina lógicamente un ítem propio y cancela sus propuestas pendientes: 204 (HU-15)                                   |
+| POST   | `/api/uploads`            | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                                           |
+| GET    | `/api/users/me/items`     | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                                         |
+| GET    | `/api/users/:id`          | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email            |
+| GET    | `/api/proposals`          | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones                           |
+| PATCH  | `/api/proposals/:id`      | Sí   | `{ accion }`: `aceptar`/`rechazar` (receptor, HU-08), `cancelar` (HU-16) o `concretar` (ítems a INTERCAMBIADO, HU-17) |
+| POST   | `/api/proposals/:id/rate` | Sí   | Califica a la contraparte de un intercambio concretado: `{ rating }` (HU-09)                                          |
 
 `GET /api/users/me/items` usa el id del token, nunca un id de la URL. `status` tiene que ser `DISPONIBLE`, `RESERVADO`, `PAUSADO` o `INTERCAMBIADO`. Un valor inválido responde 400.
 

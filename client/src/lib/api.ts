@@ -129,3 +129,14 @@ export function createProposal(
 export function getUserProfile(id: string) {
   return apiFetch<{ data: PerfilPublico }>(`/api/users/${id}`);
 }
+
+// Califica la contraparte de un intercambio concretado (HU-09).
+export function calificarIntercambio(id: number, puntaje: number, comentario?: string) {
+  return apiFetch<{ rating: { id: number; puntaje: number; comentario: string | null } }>(
+    `/api/proposals/${id}/rate`,
+    {
+      method: 'POST',
+      body: { puntaje, ...(comentario ? { comentario } : {}) },
+    }
+  );
+}
