@@ -5,6 +5,7 @@ import { Card } from '../components/ui/Card.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
 import { ApiError, getMyItems, getMyProposals, updateItemEstado } from '../lib/api.ts';
+import { useToast } from '../components/ui/useToast.ts';
 import { ESTADOS_ITEM, type EstadoItem, type Item } from '../lib/items.ts';
 import type { CalificacionResumen, Intercambio } from '../lib/proposals.ts';
 
@@ -58,8 +59,8 @@ function useSection<T>(load: () => Promise<T>, fallback: string) {
 }
 
 export function PerfilPage() {
+  const { showToast } = useToast();
   const [tab, setTab] = useState<EstadoItem>('DISPONIBLE');
-  const [notice, setNotice] = useState<string | null>(null);
   const loadItems = useCallback(() => getMyItems(), []);
   const loadHistory = useCallback(() => getMyProposals('CONCRETADA'), []);
   const items = useSection(loadItems, ITEMS_ERROR);
@@ -73,10 +74,11 @@ export function PerfilPage() {
     items.update(({ data }) => ({
       data: data.map((item) => (item.id === updated.id ? updated : item)),
     }));
-    setNotice(
+    showToast(
       updated.estado === 'PAUSADO'
         ? `Pausaste "${updated.titulo}". Lo encontrás en Pausados.`
-        : `Reactivaste "${updated.titulo}". Lo encontrás en Disponibles.`
+        : `Reactivaste "${updated.titulo}". Lo encontrás en Disponibles.`,
+      'ok'
     );
   }
 
@@ -95,12 +97,6 @@ export function PerfilPage() {
           </div>
         ) : (
           <>
-            {notice && (
-              <p className="form-success" role="status">
-                {notice}
-              </p>
-            )}
-
             <div className="profile-tabs" role="tablist" aria-label="Estado de tus publicaciones">
               {TABS.map((itemTab) => {
                 const count = mine.filter((item) => item.estado === itemTab.estado).length;

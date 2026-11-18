@@ -25,7 +25,13 @@ export function Button({
   const classes = [variantClass[variant], className].filter(Boolean).join(' ');
 
   return (
-    <button type={type} className={classes} disabled={disabled || loading} {...props}>
+    <button
+      type={type}
+      className={classes}
+      disabled={disabled || loading}
+      aria-busy={loading ? 'true' : undefined}
+      {...props}
+    >
       {loading ? 'Cargando...' : children}
     </button>
   );

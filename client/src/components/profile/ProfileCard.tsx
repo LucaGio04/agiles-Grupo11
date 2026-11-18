@@ -7,6 +7,7 @@ import { Button } from '../ui/Button.tsx';
 import { ErrorMessage } from '../ui/ErrorMessage.tsx';
 import { Input } from '../ui/Input.tsx';
 import { Loader } from '../ui/Loader.tsx';
+import { useToast } from '../ui/useToast.ts';
 import '../../styles/profile.css';
 
 type Field = 'nombre' | 'carrera';
@@ -37,6 +38,7 @@ function Reputacion({ reputacion }: { reputacion: Profile['reputacion'] }) {
 // Solo se editan nombre y carrera; el email se muestra pero no se puede cambiar.
 export function ProfileCard() {
   const { updateUser } = useAuth();
+  const { showToast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
@@ -47,7 +49,6 @@ export function ProfileCard() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +74,6 @@ export function ProfileCard() {
     setCarrera(current.user.carrera);
     setFieldErrors({});
     setSaveError(null);
-    setSaved(false);
     setEditing(true);
   }
 
@@ -99,7 +99,7 @@ export function ProfileCard() {
       // La navbar y el resto de la app usan el usuario de la sesión: se actualiza también.
       updateUser({ id, email, nombre: updated.user.nombre, carrera: updated.user.carrera });
       setEditing(false);
-      setSaved(true);
+      showToast('Perfil actualizado con éxito.', 'ok');
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 400 && Array.isArray(err.details)) {
         const errors: FieldErrors = {};
@@ -156,12 +156,6 @@ export function ProfileCard() {
           </Button>
         )}
       </header>
-
-      {saved && (
-        <p className="form-success" role="status">
-          Listo, actualizamos tus datos.
-        </p>
-      )}
 
       {editing ? (
         <form className="profile-form" onSubmit={handleSubmit} noValidate>

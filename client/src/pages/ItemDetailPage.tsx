@@ -7,6 +7,7 @@ import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
 import { Modal } from '../components/ui/Modal.tsx';
 import { ApiError, apiFetch, createProposal, getMyItems } from '../lib/api.ts';
+import { useToast } from '../components/ui/useToast.ts';
 import {
   CATEGORIAS,
   ESTADOS_CONSERVACION,
@@ -109,6 +110,7 @@ function ProposeModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { showToast } = useToast();
   const [items, setItems] = useState<Item[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -144,6 +146,7 @@ function ProposeModal({
         itemOfrecidoId: selectedId,
         ...(texto ? { mensaje: texto } : {}),
       });
+      showToast('Tu propuesta quedó pendiente de respuesta.', 'ok');
       onSuccess();
     } catch (err) {
       setError(proposalErrorText(err));
@@ -254,13 +257,13 @@ export function ItemDetailPage() {
   const [result, setResult] = useState<(Result & { forId: string }) | null>(null);
 
   // Estado del modal de eliminación (HU-15).
+  const { showToast } = useToast();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Propuesta de intercambio (HU-06).
   const [showProposeModal, setShowProposeModal] = useState(false);
-  const [proposalNotice, setProposalNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -292,7 +295,8 @@ export function ItemDetailPage() {
     setDeleteError(null);
     try {
       await apiFetch(`/api/items/${id}`, { method: 'DELETE' });
-      navigate('/', { state: { flash: 'Tu publicación fue eliminada.' } });
+      showToast('Tu publicación fue eliminada.', 'ok');
+      navigate('/');
     } catch (err) {
       setDeleteError(
         err instanceof ApiError ? err.message : 'No se pudo eliminar. Intentá de nuevo.'
@@ -328,11 +332,6 @@ export function ItemDetailPage() {
       {flash && (
         <p className="form-success item-detail-flash" role="status">
           {flash}
-        </p>
-      )}
-      {proposalNotice && (
-        <p className="form-success item-detail-flash" role="status">
-          {proposalNotice}
         </p>
       )}
 
@@ -443,10 +442,7 @@ export function ItemDetailPage() {
         <ProposeModal
           itemId={item.id}
           onClose={() => setShowProposeModal(false)}
-          onSuccess={() => {
-            setShowProposeModal(false);
-            setProposalNotice('Tu propuesta quedó pendiente.');
-          }}
+          onSuccess={() => setShowProposeModal(false)}
         />
       )}
     </article>
