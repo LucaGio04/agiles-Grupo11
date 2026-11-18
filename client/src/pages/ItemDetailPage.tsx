@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
 import { ApiError, apiFetch, createProposal, getMyItems } from '../lib/api.ts';
-import { useToast } from '../components/ui/ToastContext.tsx';
+import { useToast } from '../components/ui/useToast.ts';
 import {
   CATEGORIAS,
   ESTADOS_CONSERVACION,

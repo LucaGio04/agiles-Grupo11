@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router';
 import { PrivateRoute, RedirectIfAuthenticated } from './auth/guards.tsx';
 import { Layout } from './components/layout/Layout.tsx';
 import { ProfileCard } from './components/profile/ProfileCard.tsx';
-import { ToastProvider } from './components/ui/ToastContext.tsx';
+import { ToastProvider } from './components/ui/ToastProvider.tsx';
 import { ItemDetailPage } from './pages/ItemDetailPage.tsx';
 import { ItemsPage } from './pages/ItemsPage.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
