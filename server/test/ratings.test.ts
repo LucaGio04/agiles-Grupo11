@@ -67,16 +67,12 @@ Object.defineProperty(prisma, 'rating', {
   configurable: true,
 });
 
-describe('POST /api/proposals/:id/rate (HU-09)', () => {
-  let baseUrl: string;
-  let server: ReturnType<typeof createApp> extends { listen: (...args: any[]) => infer S }
-    ? S
-    : any;
+const server = createApp().listen(0);
+let baseUrl = '';
 
+describe('POST /api/proposals/:id/rate (HU-09)', () => {
   before(async () => {
-    const app = createApp();
-    server = app.listen(0);
-    await once(server, 'listening');
+    if (!server.listening) await once(server, 'listening');
     const { port } = server.address() as AddressInfo;
     baseUrl = `http://127.0.0.1:${port}`;
   });
