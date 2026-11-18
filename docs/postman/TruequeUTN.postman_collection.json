@@ -1,18 +1,16 @@
 {
   "info": {
     "name": "TruequeUTN API",
-    "description": "Endpoints del backend de TruequeUTN. Importar en Postman (File → Import). La variable baseUrl apunta al server local; el request de login guarda el token en la variable token para usarlo en los endpoints protegidos.",
+    "description": "Endpoints del backend de TruequeUTN. Importar en Postman (File → Import). La variable baseUrl apunta al server local; el login guarda el token y el id del usuario, y los requests siguientes usan las variables token, itemId y otherUserId.\n\nCorre completa, de arriba hacia abajo, contra los datos del seed (npm run seed): publica un ítem propio, lo consulta, lo edita y lo elimina, así que no toca los datos del seed. El registro usa un email nuevo en cada corrida. Cada request trae sus aserciones.\n\nPara subir la foto, Postman necesita encontrar docs/postman/foto-prueba.png: en el Runner, activá \"Working directory\" en esa carpeta (Settings → Working directory). Por consola: npx newman run docs/postman/TruequeUTN.postman_collection.json --working-dir docs/postman",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3001/api"
-    },
-    {
-      "key": "token",
-      "value": ""
-    }
+    { "key": "baseUrl", "value": "http://localhost:3001/api" },
+    { "key": "token", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "itemId", "value": "" },
+    { "key": "otherUserId", "value": "" },
+    { "key": "registroEmail", "value": "" }
   ],
   "item": [
     {
@@ -21,7 +19,16 @@
         "method": "GET",
         "url": "{{baseUrl}}/health",
         "description": "Verifica que el server esté levantado. Responde 200 { status: \"ok\" }."
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+          }
+        }
+      ]
     },
     {
       "name": "Auth",
@@ -34,9 +41,18 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
-                  "}"
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Un email distinto en cada corrida, para poder repetir la colección sin chocar con el 409.",
+                  "pm.collectionVariables.set('registroEmail', `lucas.${Date.now()}@utn.edu.ar`);"
                 ]
               }
             }
@@ -52,7 +68,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Lucas Romero\",\n  \"email\": \"lucas.romero@utn.edu.ar\",\n  \"password\": \"Trueque1234\",\n  \"carrera\": \"Ingeniería en Sistemas\"\n}"
+              "raw": "{\n  \"nombre\": \"Lucas Romero\",\n  \"email\": \"{{registroEmail}}\",\n  \"password\": \"Trueque1234\",\n  \"carrera\": \"Ingeniería en Sistemas\"\n}"
             },
             "description": "Crea una cuenta institucional (HU-01).\n\nBody: { nombre, email, password, carrera }.\n- Email normalizado a minúsculas y restringido al dominio institucional.\n- Contraseña hasheada con bcrypt (mínimo 10 rondas).\n\nRespuestas:\n- 201 { user: { id, nombre, email, carrera }, token } — creado y sesión iniciada\n- 400 VALIDATION_ERROR — formato inválido, dominio no institucional o contraseña menor a 8 caracteres\n- 409 CONFLICT — \"Ese email ya tiene una cuenta\""
           },
@@ -103,9 +119,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
-                  "}"
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const { user, token } = pm.response.json();",
+                  "pm.collectionVariables.set('token', token);",
+                  "pm.collectionVariables.set('userId', user.id);"
                 ]
               }
             }
@@ -168,7 +185,19 @@
               ]
             },
             "description": "Devuelve el usuario del token. El front lo usa al recargar la página para restaurar la sesión.\n\nHeader: Authorization: Bearer <token> (se completa solo después de correr Login).\n\nRespuestas:\n- 200 { user: { id, nombre, email, carrera } }\n- 401 UNAUTHORIZED — sin token, token vencido o adulterado, o el usuario ya no existe"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es el usuario del token', () => pm.expect(pm.response.json().user.id).to.eql(Number(pm.collectionVariables.get('userId'))));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -182,13 +211,7 @@
             "url": "{{baseUrl}}/users/me",
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "description": "Perfil del usuario del token (HU-11). Requiere token.\n\n- user: id, nombre, email, carrera y createdAt (fecha de alta). Nunca incluye la contraseña.\n- reputacion: promedio de las calificaciones recibidas (null si no tiene) y cantidad.\n- intercambiosConcretados: propuestas CONCRETADA como proponente o receptor.\n\nRespuestas:\n- 200 { user, reputacion, intercambiosConcretados }\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
@@ -205,6 +228,15 @@
               ],
               "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"nombre\": \"Tomás Bellizzi\",\n    \"email\": \"tomas@utn.edu.ar\",\n    \"carrera\": \"Ingeniería en Sistemas\",\n    \"createdAt\": \"2026-09-20T15:00:00.000Z\"\n  },\n  \"reputacion\": {\n    \"promedio\": 4.5,\n    \"cantidad\": 2\n  },\n  \"intercambiosConcretados\": 2\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
+            }
           ]
         },
         {
@@ -214,20 +246,9 @@
             "url": "{{baseUrl}}/users/me",
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Tomás Bellizzi\",\n  \"carrera\": \"Ingeniería en Sistemas de Información\"\n}"
@@ -259,6 +280,15 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.email\",\n        \"message\": \"El email no se puede modificar\"\n      }\n    ]\n  }\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
+            }
           ]
         }
       ]
@@ -273,13 +303,7 @@
             "url": "{{baseUrl}}/items?query=casio&category=CALCULADORA&page=1&limit=12",
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "description": "Listado del inicio con búsqueda, filtro por categoría y paginación (HU-04). Requiere token.\n\nParámetros (todos opcionales):\n- query: texto a buscar en título, descripción y materia, sin distinguir mayúsculas (hasta 100 caracteres).\n- category: LIBRO, APUNTE, CALCULADORA, INSTRUMENTAL u OTRO. Se combina con query; vacío = todas.\n- page: número de página (desde 1, máximo 100000, por defecto 1). Vacío = por defecto.\n- limit: ítems por página (por defecto 12, máximo 50). Vacío = por defecto.\n\nReglas:\n- Solo ítems DISPONIBLES.\n- Nunca incluye los ítems del usuario logueado.\n- Más recientes primero.\n\nRespuestas:\n- 200 { data: Item[], page, totalPages, total }\n- 400 VALIDATION_ERROR — page, limit o category inválidos\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
@@ -320,6 +344,21 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"query.limit\",\n        \"message\": \"El límite máximo es 50\"\n      }\n    ]\n  }\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const { data: resultados } = pm.response.json();",
+                  "pm.test('Devuelve resultados del seed', () => pm.expect(resultados.length).to.be.above(0));",
+                  "// El listado no incluye mis ítems: el dueño del primero sirve para probar el perfil público de otra persona.",
+                  "pm.collectionVariables.set('otherUserId', resultados[0].ownerId);"
+                ]
+              }
+            }
           ]
         },
         {
@@ -329,20 +368,9 @@
             "url": "{{baseUrl}}/items",
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"titulo\": \"Calculadora Casio fx-82\",\n  \"categoria\": \"CALCULADORA\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Física I\",\n  \"descripcion\": \"Funciona perfecto, con tapa\",\n  \"fotoUrl\": \"https://example.com/casio.jpg\"\n}"
@@ -386,6 +414,18 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('itemId', pm.response.json().item.id);"
+                ]
+              }
+            }
           ]
         },
         {
@@ -395,13 +435,7 @@
             "url": "{{baseUrl}}/uploads",
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "body": {
               "mode": "formdata",
@@ -409,7 +443,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": [],
+                  "src": "foto-prueba.png",
                   "description": "Imagen JPG, PNG o WebP de hasta 5 MB"
                 }
               ]
@@ -465,22 +499,28 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Devuelve la URL de la foto', () => pm.expect(pm.response.json().url).to.match(/^https?:\\/\\//));"
+                ]
+              }
+            }
           ]
         },
         {
           "name": "Detalle de ítem",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/items/7",
+            "url": "{{baseUrl}}/items/{{itemId}}",
             "auth": {
               "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
             },
             "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- RESERVADO e INTERCAMBIADO se ven con cualquier usuario logueado.\n- Un ítem PAUSADO solo lo ve su dueño. Si lo pide otra persona, responde 404 con el mismo mensaje que si no existiera.\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\" (no existe, fue eliminada, o está pausada y no sos el dueño)"
           },
@@ -509,56 +549,17 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa publicación\"\n  }\n}"
             }
-          ]
-        },
-        {
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/items/7",
-            "description": "Elimina lógicamente una publicación propia (HU-15). Requiere token y ser el dueño del ítem.\n\n- Pasa el estado del ítem a ELIMINADO para conservar el historial de calificaciones.\n- Cancela todas las propuestas PENDIENTES asociadas al ítem.\n- Si el ítem tiene una propuesta ACEPTADA en curso, responde 409 y bloquea la eliminación.\n- Un ítem INTERCAMBIADO no se puede eliminar: responde 409.\n- Una publicación ya eliminada responde 404.\n\nRespuestas:\n- 204 No Content — publicación eliminada con éxito\n- 400 VALIDATION_ERROR — id de ítem inválido\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño de la publicación\n- 404 NOT_FOUND — publicación inexistente o ya eliminada\n- 409 PROPOSAL_ACCEPTED — tiene una propuesta aceptada en curso\n- 409 CONFLICT — el ítem ya fue intercambiado",
-            "auth": {
-              "bearer": [
-                {
-                  "key": "token",
-                  "type": "string",
-                  "value": "{{token}}"
-                }
-              ],
-              "type": "bearer"
-            }
-          },
-          "name": "Eliminar publicación",
-          "response": [
+          ],
+          "event": [
             {
-              "body": "",
-              "status": "No Content",
-              "code": 204,
-              "name": "204 - Publicación eliminada",
-              "header": []
-            },
-            {
-              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo el dueño puede eliminar esta publicación\"\n  }\n}",
-              "status": "Forbidden",
-              "code": 403,
-              "name": "403 - No es el dueño",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ]
-            },
-            {
-              "body": "{\n  \"error\": {\n    \"code\": \"PROPOSAL_ACCEPTED\",\n    \"message\": \"No podés eliminar este ítem porque tiene una propuesta aceptada en curso\"\n  }\n}",
-              "status": "Conflict",
-              "code": 409,
-              "name": "409 - Propuesta aceptada en curso",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ]
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Es el ítem publicado', () => pm.expect(pm.response.json().item.id).to.eql(Number(pm.collectionVariables.get('itemId'))));"
+                ]
+              }
             }
           ]
         },
@@ -570,23 +571,12 @@
             },
             "description": "Edita los datos de una publicación propia o cambia su estado (HU-14). Requiere token y ser el dueño del ítem.\n\nBody: campos opcionales { titulo?, descripcion?, categoria?, estadoConservacion?, materia?, fotoUrl?, estado? }.\n- titulo: 3 a 80 caracteres.\n- descripcion: hasta 500 caracteres, o null para quitarla.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- materia: hasta 80 caracteres, o null para quitarla.\n- fotoUrl: URL válida o null para quitarla.\n- estado: DISPONIBLE | PAUSADO (permite pausar y reactivar la publicación).\n- Solo el dueño puede editar (403 si no es el dueño).\n- No se puede editar un ítem en estado INTERCAMBIADO (400).\n\nRespuestas:\n- 200 { item } — publicación actualizada\n- 400 VALIDATION_ERROR — datos inválidos o body vacío\n- 400 BAD_REQUEST — el ítem ya fue intercambiado\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño\n- 404 NOT_FOUND — publicación inexistente\n\nUn ítem RESERVADO se puede corregir, pero enviar estado responde 409 CONFLICT. Un ítem eliminado responde 404 NOT_FOUND.",
             "auth": {
-              "bearer": [
-                {
-                  "key": "token",
-                  "type": "string",
-                  "value": "{{token}}"
-                }
-              ],
+              "bearer": [{ "key": "token", "type": "string", "value": "{{token}}" }],
               "type": "bearer"
             },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "method": "PATCH",
-            "url": "{{baseUrl}}/items/7"
+            "url": "{{baseUrl}}/items/{{itemId}}"
           },
           "name": "Editar publicación",
           "response": [
@@ -650,6 +640,72 @@
                 }
               ]
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó pausada', () => pm.expect(pm.response.json().item.estado).to.eql('PAUSADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/items/{{itemId}}",
+            "description": "Elimina lógicamente una publicación propia (HU-15). Requiere token y ser el dueño del ítem.\n\n- Pasa el estado del ítem a ELIMINADO para conservar el historial de calificaciones.\n- Cancela todas las propuestas PENDIENTES asociadas al ítem.\n- Si el ítem tiene una propuesta ACEPTADA en curso, responde 409 y bloquea la eliminación.\n- Un ítem INTERCAMBIADO no se puede eliminar: responde 409.\n- Una publicación ya eliminada responde 404.\n\nRespuestas:\n- 204 No Content — publicación eliminada con éxito\n- 400 VALIDATION_ERROR — id de ítem inválido\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño de la publicación\n- 404 NOT_FOUND — publicación inexistente o ya eliminada\n- 409 PROPOSAL_ACCEPTED — tiene una propuesta aceptada en curso\n- 409 CONFLICT — el ítem ya fue intercambiado",
+            "auth": {
+              "bearer": [{ "key": "token", "type": "string", "value": "{{token}}" }],
+              "type": "bearer"
+            }
+          },
+          "name": "Eliminar publicación",
+          "response": [
+            {
+              "body": "",
+              "status": "No Content",
+              "code": 204,
+              "name": "204 - Publicación eliminada",
+              "header": []
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo el dueño puede eliminar esta publicación\"\n  }\n}",
+              "status": "Forbidden",
+              "code": 403,
+              "name": "403 - No es el dueño",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "body": "{\n  \"error\": {\n    \"code\": \"PROPOSAL_ACCEPTED\",\n    \"message\": \"No podés eliminar este ítem porque tiene una propuesta aceptada en curso\"\n  }\n}",
+              "status": "Conflict",
+              "code": 409,
+              "name": "409 - Propuesta aceptada en curso",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 204', () => pm.response.to.have.status(204));"]
+              }
+            }
           ]
         }
       ]
@@ -686,6 +742,15 @@
                 }
               ],
               "body": "{\n  \"data\": [\n    {\n      \"id\": 4,\n      \"titulo\": \"Demo: Calculadora pausada\",\n      \"descripcion\": \"Ítem de demo en estado pausado. Solo lo ve el dueño.\",\n      \"categoria\": \"CALCULADORA\",\n      \"estadoConservacion\": \"BUENO\",\n      \"materia\": \"Física I\",\n      \"fotoUrl\": null,\n      \"estado\": \"PAUSADO\",\n      \"ownerId\": 1,\n      \"createdAt\": \"2026-10-28T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-28T15:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
             }
           ]
         },
@@ -743,13 +808,22 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
+            }
           ]
         },
         {
           "name": "Perfil público",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/users/7",
+            "url": "{{baseUrl}}/users/{{otherUserId}}",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -798,6 +872,15 @@
                 }
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
             }
           ]
         }
@@ -859,6 +942,15 @@
                 }
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 200', () => pm.response.to.have.status(200));"]
+              }
             }
           ]
         },
