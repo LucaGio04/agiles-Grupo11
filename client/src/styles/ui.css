@@ -1096,12 +1096,6 @@
   margin-top: 1.5rem;
 }
 
-/* Estado CONCRETADA en propuestas */
-.status-concretada {
-  background-color: var(--accent-soft);
-  color: var(--accent);
-}
-
 /* Toast de feedback global (TEC-10) */
 .toast-container {
   position: fixed;

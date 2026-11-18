@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button.tsx';
 import { ErrorMessage } from '../components/ui/ErrorMessage.tsx';
 import { Input } from '../components/ui/Input.tsx';
 import { Loader } from '../components/ui/Loader.tsx';
+import { useToast } from '../components/ui/useToast.ts';
 import { ApiError, apiFetch } from '../lib/api.ts';
 import {
   CATEGORIAS,
@@ -28,6 +29,7 @@ const DESCRIPCION_MAX = 500;
 // La ruta ya está protegida por PrivateRoute.
 export function PublicarPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const { id } = useParams<{ id?: string }>();
   const isEditing = Boolean(id);
   const { user } = useAuth();
@@ -182,6 +184,7 @@ export function PublicarPage() {
             : {}),
         };
         await apiFetch<{ item: Item }>(`/api/items/${id}`, { method: 'PATCH', body });
+        showToast('¡Listo! Los cambios fueron guardados.', 'ok');
         navigate(`/items/${id}`, { state: { flash: '¡Listo! Los cambios fueron guardados.' } });
       } else {
         const body: CreateItemData = {
@@ -193,6 +196,7 @@ export function PublicarPage() {
           fotoUrl: finalFotoUrl || undefined,
         };
         const { item } = await apiFetch<{ item: Item }>('/api/items', { method: 'POST', body });
+        showToast('¡Listo! Tu material ya está publicado.', 'ok');
         navigate(`/items/${item.id}`, {
           state: { flash: '¡Listo! Tu material ya está publicado.' },
         });
