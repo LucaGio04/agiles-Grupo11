@@ -103,6 +103,18 @@ export function getMyProposals(status?: EstadoPropuesta, type?: TipoPropuesta) {
   );
 }
 
+// El receptor acepta o rechaza una propuesta pendiente.
+// Acción sobre una propuesta: aceptar / rechazar (HU-08), cancelar (HU-16) o concretar (HU-17).
+export function respondProposal(
+  id: number,
+  accion: 'aceptar' | 'rechazar' | 'cancelar' | 'concretar'
+) {
+  return apiFetch<{ data?: Intercambio; message?: string }>(`/api/proposals/${id}`, {
+    method: 'PATCH',
+    body: { accion },
+  });
+}
+
 // Ofrece uno de mis ítems a cambio del ítem solicitado (HU-06). Queda PENDIENTE.
 export function createProposal(
   itemSolicitadoId: number,
@@ -116,4 +128,15 @@ export function createProposal(
 // Perfil público de un estudiante. El mismo dato si el id es el del usuario logueado.
 export function getUserProfile(id: string) {
   return apiFetch<{ data: PerfilPublico }>(`/api/users/${id}`);
+}
+
+// Califica la contraparte de un intercambio concretado (HU-09).
+export function calificarIntercambio(id: number, puntaje: number, comentario?: string) {
+  return apiFetch<{ rating: { id: number; puntaje: number; comentario: string | null } }>(
+    `/api/proposals/${id}/rate`,
+    {
+      method: 'POST',
+      body: { puntaje, ...(comentario ? { comentario } : {}) },
+    }
+  );
 }

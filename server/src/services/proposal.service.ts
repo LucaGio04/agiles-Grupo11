@@ -1,7 +1,13 @@
 import { Prisma } from '../generated/prisma/client.js';
 import { AppError } from '../errors/AppError.js';
 import { prisma } from '../lib/prisma.js';
-import type { ListProposalsQuery, ProposeItemInput } from '../schemas/proposal.schema.js';
+import type { EstadoPropuesta } from '../generated/prisma/enums.js';
+import type {
+  ListProposalsQuery,
+  ProposeItemInput,
+  RespondProposalBody,
+} from '../schemas/proposal.schema.js';
+import type { CreateRatingInput } from '../schemas/rating.schema.js';
 
 type RatingRow = { puntaje: number; comentario: string | null };
 
@@ -18,29 +24,35 @@ const itemSelect = {
   fotoUrl: true,
 } as const;
 
+// Misma forma que cada elemento de GET /api/proposals. Aceptar, rechazar y cancelar responden una de estas.
+const proposalInclude = {
+  proponente: { select: { id: true, nombre: true, email: true } },
+  receptor: { select: { id: true, nombre: true, email: true } },
+  itemSolicitado: { select: itemSelect },
+  itemOfrecido: { select: itemSelect },
+  calificaciones: {
+    select: { puntaje: true, comentario: true, evaluadorId: true, evaluadoId: true },
+  },
+} as const;
+
 function findProposals(where: Prisma.ProposalWhereInput) {
   return prisma.proposal.findMany({
     where,
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-    include: {
-      proponente: { select: { id: true, nombre: true } },
-      receptor: { select: { id: true, nombre: true } },
-      itemSolicitado: { select: itemSelect },
-      itemOfrecido: { select: itemSelect },
-      calificaciones: {
-        select: { puntaje: true, comentario: true, evaluadorId: true, evaluadoId: true },
-      },
-    },
+    include: proposalInclude,
   });
 }
 
-type ProposalRow = Awaited<ReturnType<typeof findProposals>>[number];
+type ProposalRow = Prisma.ProposalGetPayload<{ include: typeof proposalInclude }>;
+
+const EMAIL_VISIBLE: EstadoPropuesta[] = ['ACEPTADA', 'CONCRETADA'];
 
 // La persona, los ítems y las calificaciones se arman desde el punto de vista de quien consulta.
 function toView(proposal: ProposalRow, userId: number) {
   const soyProponente = proposal.proponenteId === userId;
   const dada = proposal.calificaciones.find((rating) => rating.evaluadorId === userId);
   const recibida = proposal.calificaciones.find((rating) => rating.evaluadoId === userId);
+  const { email, ...persona } = soyProponente ? proposal.receptor : proposal.proponente;
   return {
     id: proposal.id,
     estado: proposal.estado,
@@ -48,7 +60,8 @@ function toView(proposal: ProposalRow, userId: number) {
     createdAt: proposal.createdAt,
     updatedAt: proposal.updatedAt,
     rol: soyProponente ? ('proponente' as const) : ('receptor' as const),
-    persona: soyProponente ? proposal.receptor : proposal.proponente,
+    // El email de la otra persona solo se muestra cuando el trueque se acordó (para coordinar el encuentro).
+    persona: EMAIL_VISIBLE.includes(proposal.estado) ? { ...persona, email } : persona,
     itemSolicitado: proposal.itemSolicitado,
     itemOfrecido: proposal.itemOfrecido,
     calificacionDada: toRating(dada),
@@ -88,6 +101,72 @@ export async function listMyProposals(
     data: ordenadas.map((proposal) => toView(proposal, userId)),
     pendientesRecibidas,
   };
+}
+
+// El receptor acepta o rechaza una propuesta pendiente (HU-08).
+// Al aceptar, todo el cambio de estados va en una transacción: la propuesta pasa a ACEPTADA, los dos
+// ítems a RESERVADO y el resto de las pendientes sobre esos ítems a RECHAZADA.
+export async function respondProposal(
+  userId: number,
+  proposalId: number,
+  accion: RespondProposalBody['accion']
+) {
+  const proposal = await prisma.proposal.findUnique({
+    where: { id: proposalId },
+    select: { receptorId: true, estado: true, itemSolicitadoId: true, itemOfrecidoId: true },
+  });
+  if (!proposal) throw AppError.notFound('La propuesta no existe');
+  if (proposal.receptorId !== userId) {
+    throw AppError.forbidden('Solo quien recibió la propuesta puede aceptarla o rechazarla');
+  }
+  const noPendiente = () => AppError.conflict('La propuesta ya no está pendiente');
+  if (proposal.estado !== 'PENDIENTE') throw noPendiente();
+
+  if (accion === 'rechazar') {
+    // La condición sobre el estado evita pisar una propuesta que cambió entre la lectura y la escritura.
+    const { count } = await prisma.proposal.updateMany({
+      where: { id: proposalId, estado: 'PENDIENTE' },
+      data: { estado: 'RECHAZADA' },
+    });
+    if (count === 0) throw noPendiente();
+  } else {
+    const itemIds = [proposal.itemSolicitadoId, proposal.itemOfrecidoId];
+    // Si algo falla, el AppError lanzado dentro revierte toda la transacción.
+    await prisma.$transaction(async (tx) => {
+      // Igual que en createProposal: se bloquean los ítems (en orden de id) antes de tocar nada.
+      // Sin esto, dos propuestas sobre el mismo ítem aceptadas a la vez chocan entre sí y una da 500.
+      const locked = [...new Set(itemIds)].sort((a, b) => a - b);
+      await tx.$queryRaw`
+        SELECT id FROM "Item" WHERE id IN (${Prisma.join(locked)}) ORDER BY id FOR UPDATE
+      `;
+
+      const aceptada = await tx.proposal.updateMany({
+        where: { id: proposalId, estado: 'PENDIENTE' },
+        data: { estado: 'ACEPTADA' },
+      });
+      if (aceptada.count === 0) throw noPendiente();
+
+      const reservados = await tx.item.updateMany({
+        where: { id: { in: itemIds }, estado: 'DISPONIBLE' },
+        data: { estado: 'RESERVADO' },
+      });
+      if (reservados.count !== itemIds.length) {
+        throw AppError.conflict('Alguno de los ítems ya no está disponible');
+      }
+
+      await tx.proposal.updateMany({
+        where: {
+          id: { not: proposalId },
+          estado: 'PENDIENTE',
+          OR: [{ itemSolicitadoId: { in: itemIds } }, { itemOfrecidoId: { in: itemIds } }],
+        },
+        data: { estado: 'RECHAZADA' },
+      });
+    });
+  }
+
+  const [updated] = await findProposals({ id: proposalId });
+  return { data: toView(updated, userId) };
 }
 
 type ItemRef = { id: number; ownerId: number; estado: string };
@@ -155,4 +234,133 @@ export async function createProposal(
       },
     });
   });
+}
+
+// Cancela una propuesta en la que participa el usuario (HU-16).
+// - PENDIENTE: solo quien la envió. Queda CANCELADA y el receptor ya no puede aceptarla.
+// - ACEPTADA: cualquiera de las dos partes. Los ítems RESERVADO vuelven a DISPONIBLE.
+// El FOR UPDATE y el update condicionado al estado leído evitan pisar un aceptar o rechazar concurrente.
+export async function cancelProposal(userId: number, proposalId: number) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Proposal" WHERE id = ${proposalId} FOR UPDATE`;
+
+    const proposal = await tx.proposal.findUnique({
+      where: { id: proposalId },
+      select: {
+        id: true,
+        estado: true,
+        proponenteId: true,
+        receptorId: true,
+        itemSolicitadoId: true,
+        itemOfrecidoId: true,
+      },
+    });
+    if (!proposal) throw AppError.notFound('No encontramos esa propuesta');
+
+    const participa = proposal.proponenteId === userId || proposal.receptorId === userId;
+    if (!participa) {
+      throw AppError.forbidden('Solo podés cancelar una propuesta en la que participás');
+    }
+
+    if (proposal.estado === 'PENDIENTE') {
+      if (proposal.proponenteId !== userId) {
+        throw AppError.conflict('Mientras está pendiente, solo quien la envió puede cancelarla');
+      }
+    } else if (proposal.estado !== 'ACEPTADA') {
+      throw AppError.conflict('Esta propuesta ya no se puede cancelar');
+    }
+
+    const cancelada = await tx.proposal.updateMany({
+      where: { id: proposalId, estado: proposal.estado },
+      data: { estado: 'CANCELADA' },
+    });
+    if (cancelada.count !== 1) {
+      throw AppError.conflict('Esta propuesta ya no se puede cancelar');
+    }
+
+    if (proposal.estado === 'ACEPTADA') {
+      const ids = [...new Set([proposal.itemSolicitadoId, proposal.itemOfrecidoId])].sort(
+        (a, b) => a - b
+      );
+      await tx.$queryRaw`
+        SELECT id FROM "Item" WHERE id IN (${Prisma.join(ids)}) ORDER BY id FOR UPDATE
+      `;
+      await tx.item.updateMany({
+        where: { id: { in: ids }, estado: 'RESERVADO' },
+        data: { estado: 'DISPONIBLE' },
+      });
+    }
+
+    const row = await tx.proposal.findUnique({
+      where: { id: proposalId },
+      include: proposalInclude,
+    });
+    if (!row) throw AppError.notFound('No encontramos esa propuesta');
+    return toView(row, userId);
+  });
+}
+
+// Cualquiera de las partes marca como concretado un intercambio ACEPTADO (HU-17).
+// La propuesta pasa a CONCRETADA y los dos ítems a INTERCAMBIADO.
+export async function concretarPropuesta(proposalId: number, userId: number) {
+  const proposal = await prisma.proposal.findUnique({ where: { id: proposalId } });
+  if (!proposal) throw AppError.notFound('Propuesta no encontrada');
+  if (proposal.proponenteId !== userId && proposal.receptorId !== userId) {
+    throw AppError.forbidden('No sos participante de esta propuesta');
+  }
+  if (proposal.estado !== 'ACEPTADA') {
+    throw AppError.badRequest('Solo se puede concretar una propuesta ACEPTADA');
+  }
+  await prisma.$transaction(async (tx) => {
+    // La condición sobre el estado evita pisar un cancelar concurrente: si la propuesta ya no está
+    // ACEPTADA, no se concreta (y quien cancelaba no recibe una confirmación falsa).
+    const concretada = await tx.proposal.updateMany({
+      where: { id: proposalId, estado: 'ACEPTADA' },
+      data: { estado: 'CONCRETADA' },
+    });
+    if (concretada.count === 0) throw AppError.conflict('La propuesta ya no está aceptada');
+    await tx.item.updateMany({
+      where: { id: { in: [proposal.itemSolicitadoId, proposal.itemOfrecidoId] } },
+      data: { estado: 'INTERCAMBIADO' },
+    });
+  });
+  return { message: 'Intercambio concretado exitosamente' };
+}
+
+// Califica un intercambio concretado (HU-09). Solo participantes, una vez por parte.
+export async function calificarIntercambio(
+  proposalId: number,
+  evaluadorId: number,
+  data: CreateRatingInput
+) {
+  const proposal = await prisma.proposal.findUnique({ where: { id: proposalId } });
+  if (!proposal) throw AppError.notFound('Propuesta no encontrada');
+
+  if (proposal.proponenteId !== evaluadorId && proposal.receptorId !== evaluadorId) {
+    throw AppError.forbidden('No sos participante de esta propuesta');
+  }
+
+  if (proposal.estado !== 'CONCRETADA') {
+    throw AppError.badRequest('Solo podés calificar un intercambio CONCRETADO');
+  }
+
+  const evaluadoId =
+    proposal.proponenteId === evaluadorId ? proposal.receptorId : proposal.proponenteId;
+
+  try {
+    return await prisma.rating.create({
+      data: {
+        proposalId,
+        evaluadorId,
+        evaluadoId,
+        puntaje: data.puntaje,
+        comentario: data.comentario,
+      },
+    });
+  } catch (e) {
+    if ((e as { code?: string }).code === 'P2002') {
+      throw AppError.conflict('Ya calificaste este intercambio');
+    }
+    throw e;
+  }
 }
