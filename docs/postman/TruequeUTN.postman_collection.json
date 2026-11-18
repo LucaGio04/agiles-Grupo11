@@ -28,6 +28,38 @@
     {
       "key": "registroEmail",
       "value": ""
+    },
+    {
+      "key": "tokenReceptor",
+      "value": ""
+    },
+    {
+      "key": "receptorId",
+      "value": ""
+    },
+    {
+      "key": "itemSolicitadoId",
+      "value": ""
+    },
+    {
+      "key": "itemOfrecidoId",
+      "value": ""
+    },
+    {
+      "key": "itemSolicitado2Id",
+      "value": ""
+    },
+    {
+      "key": "itemOfrecido2Id",
+      "value": ""
+    },
+    {
+      "key": "proposalId",
+      "value": ""
+    },
+    {
+      "key": "proposalCancelId",
+      "value": ""
     }
   ],
   "item": [
@@ -998,7 +1030,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"demo:intercambio-con-calificacion\",\n      \"createdAt\": \"2026-10-20T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-28T15:00:00.000Z\",\n      \"rol\": \"proponente\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\", \"categoria\": \"LIBRO\", \"fotoUrl\": null },\n      \"itemOfrecido\": { \"id\": 5, \"titulo\": \"Demo: Instrumental intercambiado\", \"estado\": \"INTERCAMBIADO\", \"categoria\": \"INSTRUMENTAL\", \"fotoUrl\": null },\n      \"calificacionDada\": { \"puntaje\": 5, \"comentario\": \"El intercambio fue claro y rápido.\" },\n      \"calificacionRecibida\": { \"puntaje\": 4, \"comentario\": \"El material estaba como lo describió.\" }\n    },\n    {\n      \"id\": 2,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"demo:intercambio-sin-calificacion\",\n      \"createdAt\": \"2026-10-21T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-27T15:00:00.000Z\",\n      \"rol\": \"receptor\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 2, \"titulo\": \"Demo: Análisis Matemático disponible\", \"estado\": \"DISPONIBLE\", \"categoria\": \"APUNTE\", \"fotoUrl\": null },\n      \"itemOfrecido\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\", \"categoria\": \"LIBRO\", \"fotoUrl\": null },\n      \"calificacionDada\": null,\n      \"calificacionRecibida\": null\n    }\n  ],\n  \"pendientesRecibidas\": 0\n}"
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"¡Hola Sofía! ¿Te sirve mi instrumental a cambio de tu libro de Química?\",\n      \"createdAt\": \"2026-10-20T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-28T15:00:00.000Z\",\n      \"rol\": \"proponente\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\", \"categoria\": \"LIBRO\", \"fotoUrl\": null },\n      \"itemOfrecido\": { \"id\": 5, \"titulo\": \"Demo: Instrumental intercambiado\", \"estado\": \"INTERCAMBIADO\", \"categoria\": \"INSTRUMENTAL\", \"fotoUrl\": null },\n      \"calificacionDada\": { \"puntaje\": 5, \"comentario\": \"El intercambio fue claro y rápido.\" },\n      \"calificacionRecibida\": { \"puntaje\": 4, \"comentario\": \"El material estaba como lo describió.\" }\n    },\n    {\n      \"id\": 2,\n      \"estado\": \"CONCRETADA\",\n      \"mensaje\": \"Hola Tomás, ¿te cambio mi libro de Química por tu Análisis Matemático?\",\n      \"createdAt\": \"2026-10-21T15:00:00.000Z\",\n      \"updatedAt\": \"2026-10-27T15:00:00.000Z\",\n      \"rol\": \"receptor\",\n      \"persona\": { \"id\": 6, \"nombre\": \"Sofía Demo\" },\n      \"itemSolicitado\": { \"id\": 2, \"titulo\": \"Demo: Análisis Matemático disponible\", \"estado\": \"DISPONIBLE\", \"categoria\": \"APUNTE\", \"fotoUrl\": null },\n      \"itemOfrecido\": { \"id\": 8, \"titulo\": \"Demo: Libro pausado de Sofía\", \"estado\": \"PAUSADO\", \"categoria\": \"LIBRO\", \"fotoUrl\": null },\n      \"calificacionDada\": null,\n      \"calificacionRecibida\": null\n    }\n  ],\n  \"pendientesRecibidas\": 0\n}"
             },
             {
               "name": "400 - Estado inválido",
@@ -1036,10 +1068,84 @@
           ]
         },
         {
-          "name": "Proponer intercambio",
+          "name": "Login (receptor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const { user, token } = pm.response.json();",
+                  "pm.collectionVariables.set('tokenReceptor', token);",
+                  "pm.collectionVariables.set('receptorId', user.id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/items/8/propose",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"luca@utn.edu.ar\",\n  \"password\": \"Trueque123\"\n}"
+            },
+            "description": "Inicia sesión con una segunda cuenta del seed (Luca), que recibe las propuestas de esta carpeta. Guarda su token en `tokenReceptor` y su id en `receptorId`."
+          },
+          "response": []
+        },
+        {
+          "name": "Publicar ítem a pedir (receptor)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenReceptor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Postman: apunte a pedir\",\n  \"categoria\": \"APUNTE\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Probabilidad y Estadística\"\n}"
+            },
+            "description": "Publica un ítem DISPONIBLE para esta carpeta, así el flujo de propuestas no toca los ítems del seed y se puede repetir. Es del receptor."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('itemSolicitadoId', pm.response.json().item.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar ítem a ofrecer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1058,7 +1164,130 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"itemOfrecidoId\": 4,\n  \"mensaje\": \"¿Lo cambiamos?\"\n}"
+              "raw": "{\n  \"titulo\": \"Postman: apunte a ofrecer\",\n  \"categoria\": \"APUNTE\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Probabilidad y Estadística\"\n}"
+            },
+            "description": "Publica un ítem DISPONIBLE para esta carpeta, así el flujo de propuestas no toca los ítems del seed y se puede repetir."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('itemOfrecidoId', pm.response.json().item.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar otro ítem a pedir (receptor)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenReceptor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Postman: libro a pedir\",\n  \"categoria\": \"LIBRO\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Probabilidad y Estadística\"\n}"
+            },
+            "description": "Publica un ítem DISPONIBLE para esta carpeta, así el flujo de propuestas no toca los ítems del seed y se puede repetir. Se usa en la propuesta que se cancela."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('itemSolicitado2Id', pm.response.json().item.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar otro ítem a ofrecer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Postman: libro a ofrecer\",\n  \"categoria\": \"LIBRO\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Probabilidad y Estadística\"\n}"
+            },
+            "description": "Publica un ítem DISPONIBLE para esta carpeta, así el flujo de propuestas no toca los ítems del seed y se puede repetir. Se usa en la propuesta que se cancela."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('itemOfrecido2Id', pm.response.json().item.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Proponer intercambio",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items/{{itemSolicitadoId}}/propose",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemOfrecidoId\": {{itemOfrecidoId}},\n  \"mensaje\": \"¿Lo cambiamos?\"\n}"
             },
             "description": "Propone un intercambio sobre un ítem ajeno (HU-06). Requiere token.\n\nURL: el :id es el ítem solicitado.\nBody: { itemOfrecidoId, mensaje? }.\n- itemOfrecidoId: id de un ítem DISPONIBLE del usuario del token.\n- mensaje: opcional, hasta 300 caracteres. Vacío se toma como no enviado.\n- El proponente es el usuario del token y el receptor es el dueño del ítem solicitado. Esos ids no se aceptan en el body.\n\nReglas:\n- El ítem solicitado y el ofrecido tienen que existir y estar DISPONIBLES. Un ítem eliminado responde igual que uno inexistente.\n- No se puede proponer sobre un ítem propio.\n- El ítem ofrecido tiene que ser del usuario autenticado.\n- No puede haber dos propuestas PENDIENTES para el mismo par (solicitado, ofrecido). Una propuesta en otro estado no bloquea.\n- La propuesta se crea en PENDIENTE.\n\nRespuestas:\n- 201 { proposal }\n- 400 BAD_REQUEST — ítem propio, ítem no disponible o el ofrecido no es propio\n- 400 VALIDATION_ERROR — falta itemOfrecidoId o el mensaje supera los 300 caracteres\n- 404 NOT_FOUND — no existe el ítem solicitado o el ofrecido\n- 409 CONFLICT — ya hay una propuesta pendiente para ese par\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
@@ -1147,19 +1376,33 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "const { proposal } = pm.response.json();",
+                  "pm.test('Queda PENDIENTE', () => pm.expect(proposal.estado).to.eql('PENDIENTE'));",
+                  "pm.collectionVariables.set('proposalId', proposal.id);"
+                ]
+              }
+            }
           ]
         },
         {
           "name": "Aceptar o rechazar propuesta",
           "request": {
             "method": "PATCH",
-            "url": "{{baseUrl}}/proposals/9",
+            "url": "{{baseUrl}}/proposals/{{proposalId}}",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token}}",
+                  "value": "{{tokenReceptor}}",
                   "type": "string"
                 }
               ]
@@ -1174,7 +1417,7 @@
               "mode": "raw",
               "raw": "{\n  \"accion\": \"aceptar\"\n}"
             },
-            "description": "El receptor de una propuesta PENDIENTE la acepta o la rechaza. Requiere token.\n\nBody: { accion: \"aceptar\" | \"rechazar\" }\n\nAl aceptar, en una transacción: la propuesta pasa a ACEPTADA, ambos ítems a RESERVADO y el resto de las propuestas pendientes sobre esos ítems a RECHAZADA. Ambos usuarios ven el email del otro (persona.email) mientras la propuesta esté ACEPTADA o CONCRETADA.\nAl rechazar, la propuesta pasa a RECHAZADA y los ítems siguen DISPONIBLES.\n\nRespuestas:\n- 200 { data } — la propuesta actualizada, vista por quien responde\n- 400 VALIDATION_ERROR — id o acción inválidos\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no sos el receptor de la propuesta\n- 404 NOT_FOUND — la propuesta no existe\n- 409 CONFLICT — la propuesta ya no está pendiente, o alguno de los ítems ya no está disponible"
+            "description": "El receptor de una propuesta PENDIENTE la acepta o la rechaza. Requiere el token del receptor (acá, `tokenReceptor`).\n\nBody: { accion: \"aceptar\" | \"rechazar\" }\n\nAl aceptar, en una transacción: la propuesta pasa a ACEPTADA, ambos ítems a RESERVADO y el resto de las propuestas pendientes sobre esos ítems a RECHAZADA. Ambos usuarios ven el email del otro (persona.email) mientras la propuesta esté ACEPTADA o CONCRETADA.\nAl rechazar, la propuesta pasa a RECHAZADA y los ítems siguen DISPONIBLES.\n\nRespuestas:\n- 200 { data } — la propuesta actualizada, vista por quien responde\n- 400 VALIDATION_ERROR — id o acción inválidos\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no sos el receptor de la propuesta\n- 404 NOT_FOUND — la propuesta no existe\n- 409 CONFLICT — la propuesta ya no está pendiente, o alguno de los ítems ya no está disponible"
           },
           "response": [
             {
@@ -1237,13 +1480,152 @@
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.accion\",\n        \"message\": \"La acción debe ser \\\"aceptar\\\" o \\\"rechazar\\\"\"\n      }\n    ]\n  }\n}"
             }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const propuesta = pm.response.json().data;",
+                  "pm.test('Queda ACEPTADA', () => pm.expect(propuesta.estado).to.eql('ACEPTADA'));",
+                  "pm.test('Se ve el email de la otra persona', () => pm.expect(propuesta.persona.email).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar como concretado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Confirma el intercambio', () => pm.expect(pm.response.json().message).to.eql('Intercambio concretado exitosamente'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/proposals/{{proposalId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"concretar\"\n}"
+            },
+            "description": "Cualquiera de las dos partes confirma que el intercambio se hizo (HU-17). Requiere token.\n\nBody: { accion: \"concretar\" }\n\nEn una transacción: la propuesta pasa a CONCRETADA y los dos ítems a INTERCAMBIADO. Solo si sigue ACEPTADA: si alguien la canceló en el medio, responde 409.\n\nRespuestas:\n- 200 { message }\n- 400 BAD_REQUEST — la propuesta no está ACEPTADA\n- 400 VALIDATION_ERROR — id o acción inválidos\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no participa de la propuesta\n- 404 NOT_FOUND — no existe\n- 409 CONFLICT — cambió de estado entre la lectura y la escritura"
+          },
+          "response": []
+        },
+        {
+          "name": "Calificar intercambio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "const { rating } = pm.response.json();",
+                  "pm.test('Guarda el puntaje', () => pm.expect(rating.puntaje).to.eql(5));",
+                  "pm.test('Califica a la otra persona', () => pm.expect(rating.evaluadoId).to.eql(Number(pm.collectionVariables.get('receptorId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/proposals/{{proposalId}}/rate",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"puntaje\": 5,\n  \"comentario\": \"Todo perfecto, muy puntual.\"\n}"
+            },
+            "description": "Califica a la otra parte de un intercambio CONCRETADO (HU-09). Requiere token. Cada parte califica una sola vez.\n\nBody: { puntaje: 1..5, comentario? (hasta 300 caracteres) }\n\nRespuestas:\n- 201 { rating }\n- 400 BAD_REQUEST — el intercambio no está CONCRETADO\n- 400 VALIDATION_ERROR — id inválido, puntaje fuera de 1..5 o comentario largo\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no participa de la propuesta\n- 404 NOT_FOUND — no existe\n- 409 CONFLICT — ya calificaste este intercambio"
+          },
+          "response": []
+        },
+        {
+          "name": "Proponer otro intercambio (para cancelar)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/items/{{itemSolicitado2Id}}/propose",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemOfrecidoId\": {{itemOfrecido2Id}}\n}"
+            },
+            "description": "Crea una segunda propuesta PENDIENTE, que el request siguiente cancela."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('proposalCancelId', pm.response.json().proposal.id);"
+                ]
+              }
+            }
           ]
         },
         {
           "name": "Cancelar propuesta",
           "request": {
             "method": "PATCH",
-            "url": "{{baseUrl}}/proposals/20",
+            "url": "{{baseUrl}}/proposals/{{proposalCancelId}}",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1264,7 +1646,7 @@
               "mode": "raw",
               "raw": "{\n  \"accion\": \"cancelar\"\n}"
             },
-            "description": "Cancela una propuesta en la que participa el usuario del token. Requiere token.\n\nBody: { accion: \"cancelar\" }.\n\nReglas:\n- Solo quien participa (proponente o receptor) puede cancelarla. Un tercero responde 403.\n- PENDIENTE: solo quien la envió. Queda CANCELADA y el receptor ya no puede aceptarla. Los ítems no cambian de estado.\n- ACEPTADA: cualquiera de las dos partes. Queda CANCELADA y los ítems que estaban RESERVADO vuelven a DISPONIBLE.\n- RECHAZADA, CANCELADA o CONCRETADA no se pueden cancelar (409).\n\nRespuestas:\n- 200 { data } con estado CANCELADA y la misma vista que un elemento del listado\n- 400 VALIDATION_ERROR — id inválido o accion distinta de cancelar\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no participa de la propuesta\n- 404 NOT_FOUND — no existe\n- 409 CONFLICT — pendiente y la quiere cancelar el receptor, o el estado ya no permite cancelarla"
+            "description": "Cancela una propuesta en la que participa el usuario del token. Requiere token.\n\nBody: { accion: \"cancelar\" }.\n\nReglas:\n- Solo quien participa (proponente o receptor) puede cancelarla. Un tercero responde 403.\n- PENDIENTE: solo quien la envió. Queda CANCELADA y el receptor ya no puede aceptarla. Los ítems no cambian de estado.\n- ACEPTADA: cualquiera de las dos partes. Queda CANCELADA y los ítems que estaban RESERVADO vuelven a DISPONIBLE.\n- RECHAZADA, CANCELADA o CONCRETADA no se pueden cancelar (409).\n\nRespuestas:\n- 200 { data } con estado CANCELADA y la misma vista que un elemento del listado\n- 400 VALIDATION_ERROR — id inválido o acción inválida\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no participa de la propuesta\n- 404 NOT_FOUND — no existe\n- 409 CONFLICT — pendiente y la quiere cancelar el receptor, o el estado ya no permite cancelarla"
           },
           "response": [
             {
@@ -1338,6 +1720,74 @@
                 }
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Queda CANCELADA', () => pm.expect(pm.response.json().data.estado).to.eql('CANCELADA'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar ítem de prueba (receptor)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/items/{{itemSolicitado2Id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenReceptor}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Limpia: elimina el ítem de prueba que quedó DISPONIBLE después de cancelar."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 204', () => pm.response.to.have.status(204));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar ítem de prueba (propio)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/items/{{itemOfrecido2Id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Limpia: elimina el ítem de prueba que quedó DISPONIBLE después de cancelar."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Responde 204', () => pm.response.to.have.status(204));"]
+              }
             }
           ]
         }
