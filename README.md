@@ -224,7 +224,7 @@ Volver a correrlo pisa lo que haya. El registro sigue limitado a `ALLOWED_EMAIL_
 
 La colección de Postman con todos los endpoints, ejemplos y respuestas está en [`docs/postman/TruequeUTN.postman_collection.json`](docs/postman/TruequeUTN.postman_collection.json) (en Postman: _File → Import_). El request de login guarda el token para usarlo en los endpoints protegidos.
 
-**Correr la colección completa.** Con el server levantado y la base con el seed (`npm run db:migrate` y `npm run seed`), la colección corre de arriba hacia abajo sin tocar los datos del seed: publica un ítem propio, lo consulta, lo edita y lo elimina. Cada request tiene sus aserciones, y se puede repetir las veces que quieras (el registro usa un email nuevo en cada corrida). Por consola:
+**Correr la colección completa.** Con el server levantado y la base con el seed (`npm run db:migrate` y `npm run seed`), la colección corre de arriba hacia abajo sin tocar los datos del seed: publica un ítem propio, lo consulta, lo edita y lo elimina. En la carpeta Propuestas entra también con una segunda cuenta del seed (`luca@utn.edu.ar`), publica ítems de prueba para cada uno y recorre el flujo completo: proponer, aceptar, marcar como concretado y calificar, y aparte proponer y cancelar. Cada request tiene sus aserciones, y se puede repetir las veces que quieras (el registro usa un email nuevo en cada corrida). Cada corrida deja dos ítems de prueba `INTERCAMBIADO` y una calificación entre Tomás y Luca; para volver al estado inicial, corré `npm run seed`. Por consola:
 
 ```bash
 npx newman run docs/postman/TruequeUTN.postman_collection.json --working-dir docs/postman

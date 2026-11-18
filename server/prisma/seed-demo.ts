@@ -2,11 +2,19 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../src/lib/prisma.js';
 
 // Datos extra para probar el perfil. No lo corre `npm run seed` ni `prisma migrate reset`.
-// Se puede ejecutar varias veces: busca por email, título o mensaje y actualiza lo que ya existe.
+// Se puede ejecutar varias veces: busca por email, título o participantes e ítems y actualiza lo que ya existe.
 const DEMO_PASSWORD = 'Trueque123';
 
-const CON_CALIFICACION = 'demo:intercambio-con-calificacion';
-const SIN_CALIFICACION = 'demo:intercambio-sin-calificacion';
+// Mensajes que se ven en la pantalla de propuestas.
+const CON_CALIFICACION = '¡Hola Sofía! ¿Te sirve mi instrumental a cambio de tu libro de Química?';
+const SIN_CALIFICACION = 'Hola Tomás, ¿te cambio mi libro de Química por tu Análisis Matemático?';
+
+// Versiones anteriores del seed usaban estas claves como mensaje. Se buscan para corregir
+// los datos que ya están cargados (por ejemplo, en el deploy) en vez de duplicarlos.
+const MENSAJES_VIEJOS: Record<string, string> = {
+  [CON_CALIFICACION]: 'demo:intercambio-con-calificacion',
+  [SIN_CALIFICACION]: 'demo:intercambio-sin-calificacion',
+};
 
 const principalData = {
   nombre: 'Tomás Bellizzi',
@@ -99,7 +107,10 @@ async function ensureProposal(data: {
   itemSolicitadoId: number;
   itemOfrecidoId: number;
 }) {
-  const existing = await prisma.proposal.findFirst({ where: { mensaje: data.mensaje } });
+  const { mensaje, ...claves } = data;
+  const existing = await prisma.proposal.findFirst({
+    where: { OR: [claves, { mensaje: MENSAJES_VIEJOS[mensaje] ?? mensaje }] },
+  });
   if (existing) {
     return prisma.proposal.update({
       where: { id: existing.id },
