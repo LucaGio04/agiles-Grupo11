@@ -1,0 +1,26 @@
+# Blueprint de la API en Render (TEC-09).
+# Root directory del servicio: vacío (raíz del repo), porque el lockfile es de los workspaces.
+# PostgreSQL se crea en el panel y DATABASE_URL se carga a mano.
+services:
+  - type: web
+    name: truequeutn-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build -w server
+    startCommand: npm run db:migrate:deploy -w server && npm run start -w server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: API_PUBLIC_URL
+        sync: false
+      - key: ALLOWED_EMAIL_DOMAIN
+        value: utn.edu.ar
