@@ -133,6 +133,13 @@ export async function respondProposal(
     const itemIds = [proposal.itemSolicitadoId, proposal.itemOfrecidoId];
     // Si algo falla, el AppError lanzado dentro revierte toda la transacción.
     await prisma.$transaction(async (tx) => {
+      // Igual que en createProposal: se bloquean los ítems (en orden de id) antes de tocar nada.
+      // Sin esto, dos propuestas sobre el mismo ítem aceptadas a la vez chocan entre sí y una da 500.
+      const locked = [...new Set(itemIds)].sort((a, b) => a - b);
+      await tx.$queryRaw`
+        SELECT id FROM "Item" WHERE id IN (${Prisma.join(locked)}) ORDER BY id FOR UPDATE
+      `;
+
       const aceptada = await tx.proposal.updateMany({
         where: { id: proposalId, estado: 'PENDIENTE' },
         data: { estado: 'ACEPTADA' },
@@ -304,19 +311,22 @@ export async function concretarPropuesta(proposalId: number, userId: number) {
   if (proposal.estado !== 'ACEPTADA') {
     throw AppError.badRequest('Solo se puede concretar una propuesta ACEPTADA');
   }
-  await prisma.$transaction([
-    prisma.proposal.update({ where: { id: proposalId }, data: { estado: 'CONCRETADA' } }),
-    prisma.item.update({
-      where: { id: proposal.itemSolicitadoId },
+  await prisma.$transaction(async (tx) => {
+    // La condición sobre el estado evita pisar un cancelar concurrente: si la propuesta ya no está
+    // ACEPTADA, no se concreta (y quien cancelaba no recibe una confirmación falsa).
+    const concretada = await tx.proposal.updateMany({
+      where: { id: proposalId, estado: 'ACEPTADA' },
+      data: { estado: 'CONCRETADA' },
+    });
+    if (concretada.count === 0) throw AppError.conflict('La propuesta ya no está aceptada');
+    await tx.item.updateMany({
+      where: { id: { in: [proposal.itemSolicitadoId, proposal.itemOfrecidoId] } },
       data: { estado: 'INTERCAMBIADO' },
-    }),
-    prisma.item.update({
-      where: { id: proposal.itemOfrecidoId },
-      data: { estado: 'INTERCAMBIADO' },
-    }),
-  ]);
+    });
+  });
   return { message: 'Intercambio concretado exitosamente' };
 }
+
 // Califica un intercambio concretado (HU-09). Solo participantes, una vez por parte.
 export async function calificarIntercambio(
   proposalId: number,

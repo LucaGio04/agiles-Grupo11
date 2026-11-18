@@ -52,8 +52,9 @@ const updateMany = mock.fn<(args: unknown) => Promise<{ count: number }>>(async 
 const itemUpdateMany = mock.fn<(args: unknown) => Promise<{ count: number }>>(async () => ({
   count: reservedCount,
 }));
+const queryRaw = mock.fn(async () => []);
 const transaction = mock.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
-  fn({ proposal: { updateMany }, item: { updateMany: itemUpdateMany } })
+  fn({ proposal: { updateMany }, item: { updateMany: itemUpdateMany }, $queryRaw: queryRaw })
 );
 
 Object.defineProperty(prisma, 'proposal', {
@@ -90,7 +91,7 @@ after(() => {
 
 describe('PATCH /api/proposals/:id', () => {
   beforeEach(() => {
-    for (const fn of [findUnique, findMany, updateMany, itemUpdateMany, transaction]) {
+    for (const fn of [findUnique, findMany, updateMany, itemUpdateMany, transaction, queryRaw]) {
       fn.mock.resetCalls();
     }
     stored = pending;
@@ -155,6 +156,8 @@ describe('PATCH /api/proposals/:id', () => {
     const res = await respond('5', { accion: 'aceptar' });
     assert.equal(res.status, 200);
     assert.equal(transaction.mock.callCount(), 1);
+    // Los ítems se bloquean (FOR UPDATE) antes de cambiar estados.
+    assert.equal(queryRaw.mock.callCount(), 1);
 
     const [aceptar, rechazarOtras] = updateMany.mock.calls.map((call) => call.arguments[0]);
     assert.deepEqual(aceptar, {

@@ -115,6 +115,16 @@ describe('POST /api/proposals/:id/rate (HU-09)', () => {
     assert.equal(res.status, 401);
   });
 
+  it('400 si el id de la propuesta no es válido (no responde 500)', async () => {
+    const token = signToken({ id: 100, email: 'user@frba.utn.edu.ar' });
+    const res = await fetch(`${baseUrl}/api/proposals/abc/rate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ puntaje: 5 }),
+    });
+    assert.equal(res.status, 400);
+  });
+
   it('400 si el puntaje no es válido (0 o 6 o no entero)', async () => {
     const token = signToken({ id: 100, email: 'user@frba.utn.edu.ar' });
     const res = await fetch(`${baseUrl}/api/proposals/1/rate`, {

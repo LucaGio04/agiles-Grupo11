@@ -28,7 +28,7 @@ router.patch(
 router.post(
   '/:id/rate',
   requireAuth,
-  validate({ body: createRatingSchema }),
+  validate({ params: proposalIdParamsSchema, body: createRatingSchema }),
   proposalController.rate
 );
 

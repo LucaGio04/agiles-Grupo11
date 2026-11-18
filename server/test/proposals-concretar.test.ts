@@ -28,38 +28,31 @@ const findUniqueProposal = mock.fn(async ({ where }: { where: { id: number } }) 
   return proposals[where.id] ?? null;
 });
 
-const updateProposal = mock.fn(
-  async ({ where, data }: { where: { id: number }; data: { estado: string } }) => {
-    if (proposals[where.id]) {
-      proposals[where.id] = { ...proposals[where.id], ...data };
-    }
-    return proposals[where.id];
+// Simula la condición `estado: 'ACEPTADA'` del updateMany: solo cuenta si la propuesta sigue aceptada.
+const updateManyProposal = mock.fn(
+  async ({ where, data }: { where: { id: number; estado: string }; data: { estado: string } }) => {
+    const current = proposals[where.id];
+    if (!current || current.estado !== where.estado) return { count: 0 };
+    proposals[where.id] = { ...current, ...data };
+    return { count: 1 };
   }
 );
 
-const updateItem = mock.fn(
-  async ({ where, data }: { where: { id: number }; data: { estado: string } }) => {
-    if (items[where.id]) {
-      items[where.id] = { ...items[where.id], ...data };
+const updateManyItem = mock.fn(
+  async ({ where, data }: { where: { id: { in: number[] } }; data: { estado: string } }) => {
+    for (const id of where.id.in) {
+      if (items[id]) items[id] = { ...items[id], ...data };
     }
-    return items[where.id];
+    return { count: where.id.in.length };
   }
 );
 
-const $transaction = mock.fn(async (ops: unknown[]) => {
-  if (Array.isArray(ops)) {
-    return Promise.all(ops);
-  }
-  return [];
-});
+const $transaction = mock.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+  fn({ proposal: { updateMany: updateManyProposal }, item: { updateMany: updateManyItem } })
+);
 
 Object.defineProperty(prisma, 'proposal', {
-  value: { findUnique: findUniqueProposal, update: updateProposal },
-  configurable: true,
-});
-
-Object.defineProperty(prisma, 'item', {
-  value: { update: updateItem },
+  value: { findUnique: findUniqueProposal },
   configurable: true,
 });
 
@@ -86,8 +79,8 @@ describe('PATCH /api/proposals/:id - concretar (HU-17)', () => {
 
   beforeEach(() => {
     findUniqueProposal.mock.resetCalls();
-    updateProposal.mock.resetCalls();
-    updateItem.mock.resetCalls();
+    updateManyProposal.mock.resetCalls();
+    updateManyItem.mock.resetCalls();
     $transaction.mock.resetCalls();
 
     proposals = {
@@ -208,5 +201,26 @@ describe('PATCH /api/proposals/:id - concretar (HU-17)', () => {
     });
     assert.equal(res.status, 200);
     assert.equal(proposals[1].estado, 'CONCRETADA');
+  });
+
+  it('409 si otra acción cambió el estado entre la lectura y la escritura (carrera con cancelar)', async () => {
+    const token = signToken({ id: 100, email: 'user@frba.utn.edu.ar' });
+    // La lectura ve ACEPTADA, pero antes del update alguien la canceló.
+    findUniqueProposal.mock.mockImplementationOnce(async () => {
+      const seen = { ...proposals[1] };
+      proposals[1] = { ...proposals[1], estado: 'CANCELADA' };
+      return seen;
+    });
+    const res = await fetch(`${baseUrl}/api/proposals/1`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ accion: 'concretar' }),
+    });
+    assert.equal(res.status, 409);
+    assert.equal(proposals[1].estado, 'CANCELADA');
+    assert.equal(updateManyItem.mock.callCount(), 0);
   });
 });
