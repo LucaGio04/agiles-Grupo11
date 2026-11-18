@@ -103,6 +103,14 @@ export function getMyProposals(status?: EstadoPropuesta, type?: TipoPropuesta) {
   );
 }
 
+// El receptor acepta o rechaza una propuesta pendiente.
+export function respondProposal(id: number, accion: 'aceptar' | 'rechazar') {
+  return apiFetch<{ data: Intercambio }>(`/api/proposals/${id}`, {
+    method: 'PATCH',
+    body: { accion },
+  });
+}
+
 // Ofrece uno de mis ítems a cambio del ítem solicitado (HU-06). Queda PENDIENTE.
 export function createProposal(
   itemSolicitadoId: number,
