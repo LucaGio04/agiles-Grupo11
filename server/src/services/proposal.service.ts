@@ -23,23 +23,26 @@ const itemSelect = {
   fotoUrl: true,
 } as const;
 
+// Misma forma que cada elemento de GET /api/proposals. Aceptar, rechazar y cancelar responden una de estas.
+const proposalInclude = {
+  proponente: { select: { id: true, nombre: true, email: true } },
+  receptor: { select: { id: true, nombre: true, email: true } },
+  itemSolicitado: { select: itemSelect },
+  itemOfrecido: { select: itemSelect },
+  calificaciones: {
+    select: { puntaje: true, comentario: true, evaluadorId: true, evaluadoId: true },
+  },
+} as const;
+
 function findProposals(where: Prisma.ProposalWhereInput) {
   return prisma.proposal.findMany({
     where,
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-    include: {
-      proponente: { select: { id: true, nombre: true, email: true } },
-      receptor: { select: { id: true, nombre: true, email: true } },
-      itemSolicitado: { select: itemSelect },
-      itemOfrecido: { select: itemSelect },
-      calificaciones: {
-        select: { puntaje: true, comentario: true, evaluadorId: true, evaluadoId: true },
-      },
-    },
+    include: proposalInclude,
   });
 }
 
-type ProposalRow = Awaited<ReturnType<typeof findProposals>>[number];
+type ProposalRow = Prisma.ProposalGetPayload<{ include: typeof proposalInclude }>;
 
 const EMAIL_VISIBLE: EstadoPropuesta[] = ['ACEPTADA', 'CONCRETADA'];
 
@@ -222,5 +225,69 @@ export async function createProposal(
         estado: 'PENDIENTE',
       },
     });
+  });
+}
+
+// Cancela una propuesta en la que participa el usuario (HU-16).
+// - PENDIENTE: solo quien la envió. Queda CANCELADA y el receptor ya no puede aceptarla.
+// - ACEPTADA: cualquiera de las dos partes. Los ítems RESERVADO vuelven a DISPONIBLE.
+// El FOR UPDATE y el update condicionado al estado leído evitan pisar un aceptar o rechazar concurrente.
+export async function cancelProposal(userId: number, proposalId: number) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Proposal" WHERE id = ${proposalId} FOR UPDATE`;
+
+    const proposal = await tx.proposal.findUnique({
+      where: { id: proposalId },
+      select: {
+        id: true,
+        estado: true,
+        proponenteId: true,
+        receptorId: true,
+        itemSolicitadoId: true,
+        itemOfrecidoId: true,
+      },
+    });
+    if (!proposal) throw AppError.notFound('No encontramos esa propuesta');
+
+    const participa = proposal.proponenteId === userId || proposal.receptorId === userId;
+    if (!participa) {
+      throw AppError.forbidden('Solo podés cancelar una propuesta en la que participás');
+    }
+
+    if (proposal.estado === 'PENDIENTE') {
+      if (proposal.proponenteId !== userId) {
+        throw AppError.conflict('Mientras está pendiente, solo quien la envió puede cancelarla');
+      }
+    } else if (proposal.estado !== 'ACEPTADA') {
+      throw AppError.conflict('Esta propuesta ya no se puede cancelar');
+    }
+
+    const cancelada = await tx.proposal.updateMany({
+      where: { id: proposalId, estado: proposal.estado },
+      data: { estado: 'CANCELADA' },
+    });
+    if (cancelada.count !== 1) {
+      throw AppError.conflict('Esta propuesta ya no se puede cancelar');
+    }
+
+    if (proposal.estado === 'ACEPTADA') {
+      const ids = [...new Set([proposal.itemSolicitadoId, proposal.itemOfrecidoId])].sort(
+        (a, b) => a - b
+      );
+      await tx.$queryRaw`
+        SELECT id FROM "Item" WHERE id IN (${Prisma.join(ids)}) ORDER BY id FOR UPDATE
+      `;
+      await tx.item.updateMany({
+        where: { id: { in: ids }, estado: 'RESERVADO' },
+        data: { estado: 'DISPONIBLE' },
+      });
+    }
+
+    const row = await tx.proposal.findUnique({
+      where: { id: proposalId },
+      include: proposalInclude,
+    });
+    if (!row) throw AppError.notFound('No encontramos esa propuesta');
+    return toView(row, userId);
   });
 }

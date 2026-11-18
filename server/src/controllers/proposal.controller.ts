@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import type { ListProposalsQuery, RespondProposalBody } from '../schemas/proposal.schema.js';
+import type { ListProposalsQuery, UpdateProposalInput } from '../schemas/proposal.schema.js';
 import * as proposalService from '../services/proposal.service.js';
 
 export const list: RequestHandler = async (req, res) => {
@@ -7,10 +7,21 @@ export const list: RequestHandler = async (req, res) => {
   res.json(await proposalService.listMyProposals(req.user!.id, { status, type }));
 };
 
-export const respond: RequestHandler = async (req, res) => {
-  const { id } = req.params as unknown as { id: number };
-  const { accion } = req.body as RespondProposalBody;
-  res.json(await proposalService.respondProposal(req.user!.id, id, accion));
+// PATCH /api/proposals/:id. Despacha según la acción del body.
+// - aceptar / rechazar (HU-08) y cancelar (HU-16) responden 200 { data } con la vista del listado.
+export const update: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const userId = req.user!.id;
+  const { accion } = req.body as UpdateProposalInput;
+  switch (accion) {
+    case 'aceptar':
+    case 'rechazar':
+      res.json(await proposalService.respondProposal(userId, id, accion));
+      return;
+    case 'cancelar':
+      res.json({ data: await proposalService.cancelProposal(userId, id) });
+      return;
+  }
 };
 
 // Propone un intercambio sobre el ítem :id (HU-06). Responde 201 con la propuesta PENDIENTE.

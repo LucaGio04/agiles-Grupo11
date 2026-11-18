@@ -5,12 +5,30 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3001/api" },
-    { "key": "token", "value": "" },
-    { "key": "userId", "value": "" },
-    { "key": "itemId", "value": "" },
-    { "key": "otherUserId", "value": "" },
-    { "key": "registroEmail", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "itemId",
+      "value": ""
+    },
+    {
+      "key": "otherUserId",
+      "value": ""
+    },
+    {
+      "key": "registroEmail",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -211,7 +229,13 @@
             "url": "{{baseUrl}}/users/me",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Perfil del usuario del token (HU-11). Requiere token.\n\n- user: id, nombre, email, carrera y createdAt (fecha de alta). Nunca incluye la contraseña.\n- reputacion: promedio de las calificaciones recibidas (null si no tiene) y cantidad.\n- intercambiosConcretados: propuestas CONCRETADA como proponente o receptor.\n\nRespuestas:\n- 200 { user, reputacion, intercambiosConcretados }\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
@@ -246,9 +270,20 @@
             "url": "{{baseUrl}}/users/me",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Tomás Bellizzi\",\n  \"carrera\": \"Ingeniería en Sistemas de Información\"\n}"
@@ -303,7 +338,13 @@
             "url": "{{baseUrl}}/items?query=casio&category=CALCULADORA&page=1&limit=12",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Listado del inicio con búsqueda, filtro por categoría y paginación (HU-04). Requiere token.\n\nParámetros (todos opcionales):\n- query: texto a buscar en título, descripción y materia, sin distinguir mayúsculas (hasta 100 caracteres).\n- category: LIBRO, APUNTE, CALCULADORA, INSTRUMENTAL u OTRO. Se combina con query; vacío = todas.\n- page: número de página (desde 1, máximo 100000, por defecto 1). Vacío = por defecto.\n- limit: ítems por página (por defecto 12, máximo 50). Vacío = por defecto.\n\nReglas:\n- Solo ítems DISPONIBLES.\n- Nunca incluye los ítems del usuario logueado.\n- Más recientes primero.\n\nRespuestas:\n- 200 { data: Item[], page, totalPages, total }\n- 400 VALIDATION_ERROR — page, limit o category inválidos\n- 401 UNAUTHORIZED — sin token o token vencido"
           },
@@ -368,9 +409,20 @@
             "url": "{{baseUrl}}/items",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"titulo\": \"Calculadora Casio fx-82\",\n  \"categoria\": \"CALCULADORA\",\n  \"estadoConservacion\": \"BUENO\",\n  \"materia\": \"Física I\",\n  \"descripcion\": \"Funciona perfecto, con tapa\",\n  \"fotoUrl\": \"https://example.com/casio.jpg\"\n}"
@@ -435,7 +487,13 @@
             "url": "{{baseUrl}}/uploads",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "body": {
               "mode": "formdata",
@@ -520,7 +578,13 @@
             "url": "{{baseUrl}}/items/{{itemId}}",
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "description": "Detalle de una publicación con los datos públicos de su dueño (HU-05). Requiere token.\n\n- RESERVADO e INTERCAMBIADO se ven con cualquier usuario logueado.\n- Un ítem PAUSADO solo lo ve su dueño. Si lo pide otra persona, responde 404 con el mismo mensaje que si no existiera.\n- owner.reputacion: promedio de calificaciones recibidas (null si no tiene) y cantidad.\n- Nunca incluye email ni contraseña del dueño.\n\nRespuestas:\n- 200 { item, owner }\n- 400 VALIDATION_ERROR — el id no es un número\n- 401 UNAUTHORIZED — sin token o token vencido\n- 404 NOT_FOUND — \"No encontramos esa publicación\" (no existe, fue eliminada, o está pausada y no sos el dueño)"
           },
@@ -571,10 +635,21 @@
             },
             "description": "Edita los datos de una publicación propia o cambia su estado (HU-14). Requiere token y ser el dueño del ítem.\n\nBody: campos opcionales { titulo?, descripcion?, categoria?, estadoConservacion?, materia?, fotoUrl?, estado? }.\n- titulo: 3 a 80 caracteres.\n- descripcion: hasta 500 caracteres, o null para quitarla.\n- categoria: LIBRO | APUNTE | CALCULADORA | INSTRUMENTAL | OTRO.\n- estadoConservacion: NUEVO | BUENO | USADO.\n- materia: hasta 80 caracteres, o null para quitarla.\n- fotoUrl: URL válida o null para quitarla.\n- estado: DISPONIBLE | PAUSADO (permite pausar y reactivar la publicación).\n- Solo el dueño puede editar (403 si no es el dueño).\n- No se puede editar un ítem en estado INTERCAMBIADO (400).\n\nRespuestas:\n- 200 { item } — publicación actualizada\n- 400 VALIDATION_ERROR — datos inválidos o body vacío\n- 400 BAD_REQUEST — el ítem ya fue intercambiado\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño\n- 404 NOT_FOUND — publicación inexistente\n\nUn ítem RESERVADO se puede corregir, pero enviar estado responde 409 CONFLICT. Un ítem eliminado responde 404 NOT_FOUND.",
             "auth": {
-              "bearer": [{ "key": "token", "type": "string", "value": "{{token}}" }],
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{token}}"
+                }
+              ],
               "type": "bearer"
             },
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "method": "PATCH",
             "url": "{{baseUrl}}/items/{{itemId}}"
           },
@@ -660,7 +735,13 @@
             "url": "{{baseUrl}}/items/{{itemId}}",
             "description": "Elimina lógicamente una publicación propia (HU-15). Requiere token y ser el dueño del ítem.\n\n- Pasa el estado del ítem a ELIMINADO para conservar el historial de calificaciones.\n- Cancela todas las propuestas PENDIENTES asociadas al ítem.\n- Si el ítem tiene una propuesta ACEPTADA en curso, responde 409 y bloquea la eliminación.\n- Un ítem INTERCAMBIADO no se puede eliminar: responde 409.\n- Una publicación ya eliminada responde 404.\n\nRespuestas:\n- 204 No Content — publicación eliminada con éxito\n- 400 VALIDATION_ERROR — id de ítem inválido\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — el usuario no es el dueño de la publicación\n- 404 NOT_FOUND — publicación inexistente o ya eliminada\n- 409 PROPOSAL_ACCEPTED — tiene una propuesta aceptada en curso\n- 409 CONFLICT — el ítem ya fue intercambiado",
             "auth": {
-              "bearer": [{ "key": "token", "type": "string", "value": "{{token}}" }],
+              "bearer": [
+                {
+                  "key": "token",
+                  "type": "string",
+                  "value": "{{token}}"
+                }
+              ],
               "type": "bearer"
             }
           },
@@ -1155,6 +1236,108 @@
                 }
               ],
               "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.accion\",\n        \"message\": \"La acción debe ser \\\"aceptar\\\" o \\\"rechazar\\\"\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancelar propuesta",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/proposals/20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accion\": \"cancelar\"\n}"
+            },
+            "description": "Cancela una propuesta en la que participa el usuario del token. Requiere token.\n\nBody: { accion: \"cancelar\" }.\n\nReglas:\n- Solo quien participa (proponente o receptor) puede cancelarla. Un tercero responde 403.\n- PENDIENTE: solo quien la envió. Queda CANCELADA y el receptor ya no puede aceptarla. Los ítems no cambian de estado.\n- ACEPTADA: cualquiera de las dos partes. Queda CANCELADA y los ítems que estaban RESERVADO vuelven a DISPONIBLE.\n- RECHAZADA, CANCELADA o CONCRETADA no se pueden cancelar (409).\n\nRespuestas:\n- 200 { data } con estado CANCELADA y la misma vista que un elemento del listado\n- 400 VALIDATION_ERROR — id inválido o accion distinta de cancelar\n- 401 UNAUTHORIZED — sin token o token vencido\n- 403 FORBIDDEN — no participa de la propuesta\n- 404 NOT_FOUND — no existe\n- 409 CONFLICT — pendiente y la quiere cancelar el receptor, o el estado ya no permite cancelarla"
+          },
+          "response": [
+            {
+              "name": "200 - Propuesta cancelada",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": 20,\n    \"estado\": \"CANCELADA\",\n    \"mensaje\": \"¿Lo cambiamos?\",\n    \"createdAt\": \"2026-11-01T00:00:00.000Z\",\n    \"updatedAt\": \"2026-11-15T12:00:00.000Z\",\n    \"rol\": \"proponente\",\n    \"persona\": { \"id\": 2, \"nombre\": \"Sofía Demo\" },\n    \"itemSolicitado\": { \"id\": 8, \"titulo\": \"Libro de Sofía\", \"estado\": \"DISPONIBLE\" },\n    \"itemOfrecido\": { \"id\": 4, \"titulo\": \"Apunte de Tomás\", \"estado\": \"DISPONIBLE\" },\n    \"calificacionDada\": null,\n    \"calificacionRecibida\": null\n  }\n}"
+            },
+            {
+              "name": "403 - No participa",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"FORBIDDEN\",\n    \"message\": \"Solo podés cancelar una propuesta en la que participás\"\n  }\n}"
+            },
+            {
+              "name": "404 - Propuesta inexistente",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"NOT_FOUND\",\n    \"message\": \"No encontramos esa propuesta\"\n  }\n}"
+            },
+            {
+              "name": "409 - Ya no se puede cancelar",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"CONFLICT\",\n    \"message\": \"Esta propuesta ya no se puede cancelar\"\n  }\n}"
+            },
+            {
+              "name": "400 - Acción inválida",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Los datos enviados no son válidos\",\n    \"details\": [\n      {\n        \"field\": \"body.accion\",\n        \"message\": \"La acción tiene que ser cancelar\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "401 - Sin token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": {\n    \"code\": \"UNAUTHORIZED\",\n    \"message\": \"Falta el token de autenticación\"\n  }\n}"
             }
           ]
         }

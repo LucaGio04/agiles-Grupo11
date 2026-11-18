@@ -104,7 +104,7 @@ describe('PATCH /api/proposals/:id', () => {
   });
 
   it('rechaza una acción inválida con 400 sin tocar la base', async () => {
-    const res = await respond('5', { accion: 'cancelar' });
+    const res = await respond('5', { accion: 'borrar' });
     assert.equal(res.status, 400);
     assert.equal(findUnique.mock.callCount(), 0);
   });

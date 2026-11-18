@@ -5,7 +5,7 @@ import { validate } from '../middlewares/validate.js';
 import {
   listProposalsQuerySchema,
   proposalIdParamsSchema,
-  respondProposalSchema,
+  updateProposalSchema,
 } from '../schemas/proposal.schema.js';
 
 const router = Router();
@@ -20,8 +20,8 @@ router.get(
 router.patch(
   '/:id',
   requireAuth,
-  validate({ params: proposalIdParamsSchema, body: respondProposalSchema }),
-  proposalController.respond
+  validate({ params: proposalIdParamsSchema, body: updateProposalSchema }),
+  proposalController.update
 );
 
 export default router;
