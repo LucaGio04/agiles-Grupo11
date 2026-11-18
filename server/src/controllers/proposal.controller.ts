@@ -9,6 +9,7 @@ export const list: RequestHandler = async (req, res) => {
 
 // PATCH /api/proposals/:id. Despacha según la acción del body.
 // - aceptar / rechazar (HU-08) y cancelar (HU-16) responden 200 { data } con la vista del listado.
+// - concretar (HU-17) responde 200 { message }.
 export const update: RequestHandler = async (req, res) => {
   const id = Number(req.params.id);
   const userId = req.user!.id;
@@ -20,6 +21,9 @@ export const update: RequestHandler = async (req, res) => {
       return;
     case 'cancelar':
       res.json({ data: await proposalService.cancelProposal(userId, id) });
+      return;
+    case 'concretar':
+      res.json(await proposalService.concretarPropuesta(id, userId));
       return;
   }
 };

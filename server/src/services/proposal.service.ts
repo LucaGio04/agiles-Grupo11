@@ -291,3 +291,28 @@ export async function cancelProposal(userId: number, proposalId: number) {
     return toView(row, userId);
   });
 }
+
+// Cualquiera de las partes marca como concretado un intercambio ACEPTADO (HU-17).
+// La propuesta pasa a CONCRETADA y los dos ítems a INTERCAMBIADO.
+export async function concretarPropuesta(proposalId: number, userId: number) {
+  const proposal = await prisma.proposal.findUnique({ where: { id: proposalId } });
+  if (!proposal) throw AppError.notFound('Propuesta no encontrada');
+  if (proposal.proponenteId !== userId && proposal.receptorId !== userId) {
+    throw AppError.forbidden('No sos participante de esta propuesta');
+  }
+  if (proposal.estado !== 'ACEPTADA') {
+    throw AppError.badRequest('Solo se puede concretar una propuesta ACEPTADA');
+  }
+  await prisma.$transaction([
+    prisma.proposal.update({ where: { id: proposalId }, data: { estado: 'CONCRETADA' } }),
+    prisma.item.update({
+      where: { id: proposal.itemSolicitadoId },
+      data: { estado: 'INTERCAMBIADO' },
+    }),
+    prisma.item.update({
+      where: { id: proposal.itemOfrecidoId },
+      data: { estado: 'INTERCAMBIADO' },
+    }),
+  ]);
+  return { message: 'Intercambio concretado exitosamente' };
+}

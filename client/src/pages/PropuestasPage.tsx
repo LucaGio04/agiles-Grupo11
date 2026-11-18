@@ -147,7 +147,7 @@ export function PropuestasPage() {
   );
 }
 
-type Accion = 'aceptar' | 'rechazar';
+type Accion = 'aceptar' | 'rechazar' | 'cancelar' | 'concretar';
 
 const CONFIRMACION: Record<Accion, { title: string; message: string; confirm: string }> = {
   aceptar: {
@@ -161,9 +161,21 @@ const CONFIRMACION: Record<Accion, { title: string; message: string; confirm: st
     message: 'Tus ítems siguen disponibles y no se puede deshacer.',
     confirm: 'Rechazar',
   },
+  cancelar: {
+    title: '¿Cancelar la propuesta?',
+    message:
+      'La propuesta queda cancelada y no se puede deshacer. Si estaba aceptada, los ítems vuelven a estar disponibles.',
+    confirm: 'Cancelar propuesta',
+  },
+  concretar: {
+    title: '¿Marcar como concretado?',
+    message:
+      'Confirmá que el intercambio ya se hizo. Los dos ítems pasan a intercambiados y no se puede deshacer.',
+    confirm: 'Marcar como concretado',
+  },
 };
 
-const RESPOND_ERROR = 'No pudimos responder la propuesta. Revisá tu conexión y probá de nuevo.';
+const RESPOND_ERROR = 'No pudimos actualizar la propuesta. Revisá tu conexión y probá de nuevo.';
 
 function PropuestaCard({
   propuesta,
@@ -196,6 +208,10 @@ function PropuestaCard({
   }
 
   const pendienteRecibida = propuesta.rol === 'receptor' && propuesta.estado === 'PENDIENTE';
+  const aceptada = propuesta.estado === 'ACEPTADA';
+  // Una pendiente la cancela solo quien la envió; una aceptada, cualquiera de las partes (HU-16).
+  const puedeCancelar =
+    aceptada || (propuesta.estado === 'PENDIENTE' && propuesta.rol === 'proponente');
   const ofrece = propuesta.rol === 'proponente' ? 'Ofreciste' : 'Te ofrece';
   const pide = propuesta.rol === 'proponente' ? 'Pediste' : 'Pide tu ítem';
 
@@ -247,11 +263,23 @@ function PropuestaCard({
           </Button>
         </div>
       )}
+      {(aceptada || puedeCancelar) && (
+        <div className="proposal-actions">
+          {aceptada && (
+            <Button onClick={() => setAccion('concretar')}>Marcar como concretado</Button>
+          )}
+          {puedeCancelar && (
+            <Button variant="secondary" onClick={() => setAccion('cancelar')}>
+              Cancelar propuesta
+            </Button>
+          )}
+        </div>
+      )}
 
       {accion && (
         <ConfirmDialog
           {...CONFIRMACION[accion]}
-          variant={accion === 'rechazar' ? 'danger' : 'primary'}
+          variant={accion === 'rechazar' || accion === 'cancelar' ? 'danger' : 'primary'}
           loading={saving}
           onConfirm={confirmar}
           onCancel={() => setAccion(null)}

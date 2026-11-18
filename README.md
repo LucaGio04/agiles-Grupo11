@@ -54,17 +54,17 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-| Variable                | Paquete | Descripción                                                                                         |
-| ----------------------- | ------- | --------------------------------------------------------------------------------------------------- |
-| `NODE_ENV`              | server  | `development` en local. En Render, `production` (oculta el stack de los errores 500)               |
-| `PORT`                  | server  | Puerto del backend (default: 3001). En Render lo inyecta la plataforma: no lo cargues               |
-| `CLIENT_URL`            | server  | Un solo origen del frontend para CORS, sin barra final                                             |
-| `DATABASE_URL`          | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)                      |
-| `JWT_SECRET`            | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio                     |
-| `ALLOWED_EMAIL_DOMAIN`  | server  | Dominio permitido en el registro (default: `utn.edu.ar`)                                            |
-| `UPLOADS_DIR`           | server  | (Opcional) Carpeta de las fotos de los ítems. Por defecto `server/uploads`                          |
-| `API_PUBLIC_URL`        | server  | (Opcional en local) URL https del backend, sin barra final, para armar el link de las fotos        |
-| `VITE_API_URL`          | client  | URL base del backend, sin barra final y sin `/api`                                                  |
+| Variable               | Paquete | Descripción                                                                                 |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `NODE_ENV`             | server  | `development` en local. En Render, `production` (oculta el stack de los errores 500)        |
+| `PORT`                 | server  | Puerto del backend (default: 3001). En Render lo inyecta la plataforma: no lo cargues       |
+| `CLIENT_URL`           | server  | Un solo origen del frontend para CORS, sin barra final                                      |
+| `DATABASE_URL`         | server  | Conexión a PostgreSQL (el valor de ejemplo coincide con `docker-compose.yml`)               |
+| `JWT_SECRET`           | server  | Secreto para firmar los tokens de sesión (JWT). Usá un valor largo y aleatorio              |
+| `ALLOWED_EMAIL_DOMAIN` | server  | Dominio permitido en el registro (default: `utn.edu.ar`)                                    |
+| `UPLOADS_DIR`          | server  | (Opcional) Carpeta de las fotos de los ítems. Por defecto `server/uploads`                  |
+| `API_PUBLIC_URL`       | server  | (Opcional en local) URL https del backend, sin barra final, para armar el link de las fotos |
+| `VITE_API_URL`         | client  | URL base del backend, sin barra final y sin `/api`                                          |
 
 Los valores de producción (ficticios en los example) están comentados al final de `server/.env.example` y `client/.env.example`. Cómo cargarlos en Render y Vercel está en [Deploy](#deploy).
 
@@ -142,12 +142,12 @@ navegador → Vercel (client/dist) → Render (Express) → PostgreSQL
 
 ### Dónde se configura cada cosa
 
-| | Vercel | Render (web service) |
-| --- | --- | --- |
-| Root directory | `client` | vacío (raíz del repo) |
-| Framework / runtime | Vite | Node |
-| Build | `npm run build` (lo detecta Vite) | `npm ci --include=dev && npm run build -w server` |
-| Start | estático | `npm run db:migrate:deploy -w server && npm run start -w server` |
+|                     | Vercel                            | Render (web service)                                             |
+| ------------------- | --------------------------------- | ---------------------------------------------------------------- |
+| Root directory      | `client`                          | vacío (raíz del repo)                                            |
+| Framework / runtime | Vite                              | Node                                                             |
+| Build               | `npm run build` (lo detecta Vite) | `npm ci --include=dev && npm run build -w server`                |
+| Start               | estático                          | `npm run db:migrate:deploy -w server && npm run start -w server` |
 
 `tsc` y `prisma` son devDependencies. Render exporta `NODE_ENV=production` también durante el build, así que `npm ci` pelado no los instala: `--include=dev` los incluye. Esos `node_modules` quedan para el start, y `prisma migrate deploy` los necesita.
 
@@ -161,14 +161,14 @@ Health check: `GET /api/health` → `{ "status": "ok" }`. En Render, Health Chec
 
 **Render (API).** No cargues `PORT`: lo inyecta la plataforma.
 
-| Variable | Valor |
-| --- | --- |
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | Internal Database URL de Render. Si usás la External Database URL, agregá `sslmode=require` |
-| `JWT_SECRET` | Secreto largo y aleatorio, distinto del de desarrollo |
-| `CLIENT_URL` | URL https del front, un solo origen, sin barra final. Ejemplo ficticio: `https://truequeutn.vercel.app` |
-| `API_PUBLIC_URL` | URL https del propio backend, sin barra final. Ejemplo ficticio: `https://truequeutn-api.onrender.com` |
-| `ALLOWED_EMAIL_DOMAIN` | `utn.edu.ar` |
+| Variable               | Valor                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`             | `production`                                                                                            |
+| `DATABASE_URL`         | Internal Database URL de Render. Si usás la External Database URL, agregá `sslmode=require`             |
+| `JWT_SECRET`           | Secreto largo y aleatorio, distinto del de desarrollo                                                   |
+| `CLIENT_URL`           | URL https del front, un solo origen, sin barra final. Ejemplo ficticio: `https://truequeutn.vercel.app` |
+| `API_PUBLIC_URL`       | URL https del propio backend, sin barra final. Ejemplo ficticio: `https://truequeutn-api.onrender.com`  |
+| `ALLOWED_EMAIL_DOMAIN` | `utn.edu.ar`                                                                                            |
 
 `API_PUBLIC_URL` tiene que ser https. Las fotos se sirven desde el backend (`/uploads/...`) y, si el link sale en http, el navegador las bloquea por contenido mixto. Sin esta variable el server arma el link con el host del request, que detrás del proxy de Render puede ser http.
 
@@ -176,8 +176,8 @@ Health check: `GET /api/health` → `{ "status": "ok" }`. En Render, Health Chec
 
 **Vercel (front).** Una sola variable, disponible en build (Vite la embebe; cambiarla pide un redeploy):
 
-| Variable | Valor |
-| --- | --- |
+| Variable       | Valor                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
 | `VITE_API_URL` | URL https del backend, sin barra final y sin `/api`. Ejemplo ficticio: `https://truequeutn-api.onrender.com` |
 
 El router es `BrowserRouter`. [`client/vercel.json`](client/vercel.json) reescribe todas las rutas a `index.html`, así recargar `/propuestas`, `/perfil` o `/items/1` no devuelve 404 del hosting.
@@ -232,24 +232,24 @@ npx newman run docs/postman/TruequeUTN.postman_collection.json --working-dir doc
 
 `--working-dir` hace falta para que encuentre `foto-prueba.png`, la imagen que usa el request "Subir foto". En el Runner de Postman, apuntá el _Working directory_ a `docs/postman`. Si algún request falla, newman termina con código distinto de 0.
 
-| Método | Ruta                  | Auth | Descripción                                                                                                |
-| ------ | --------------------- | ---- | ---------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/health`         | No   | Estado del server                                                                                          |
-| POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                                   |
-| POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                                  |
-| GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                               |
-| GET    | `/api/users/me`       | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)                                                |
-| PATCH  | `/api/users/me`       | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                                 |
-| GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                           |
-| POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                   |
-| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno o un `ELIMINADO` responde 404 |
-| PATCH  | `/api/items/:id`      | Sí   | Edita un ítem propio, o lo pausa y reactiva: `{ item }` (HU-14)                                            |
-| DELETE | `/api/items/:id`      | Sí   | Elimina lógicamente un ítem propio y cancela sus propuestas pendientes: 204 (HU-15)                        |
-| POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                                |
-| GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                              |
-| GET    | `/api/users/:id`      | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email |
-| GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones                |
-| PATCH  | `/api/proposals/:id`  | Sí   | Cancela una propuesta: `{ accion: "cancelar" }` → `{ data }` en `CANCELADA`, misma vista que el listado    |
+| Método | Ruta                  | Auth | Descripción                                                                                                             |
+| ------ | --------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/health`         | No   | Estado del server                                                                                                       |
+| POST   | `/api/auth/register`  | No   | Crea una cuenta institucional: `{ user, token }` (HU-01)                                                                |
+| POST   | `/api/auth/login`     | No   | Inicia sesión: devuelve `{ user, token }`                                                                               |
+| GET    | `/api/auth/me`        | Sí   | Usuario del token (para restaurar la sesión)                                                                            |
+| GET    | `/api/users/me`       | Sí   | Mi perfil con reputación e intercambios concretados (HU-11)                                                             |
+| PATCH  | `/api/users/me`       | Sí   | Edita mi nombre y carrera: `{ nombre?, carrera? }` (HU-11)                                                              |
+| GET    | `/api/items`          | Sí   | Lista y busca ítems: `{ data, page, totalPages, total }` (HU-04)                                                        |
+| POST   | `/api/items`          | Sí   | Publica un ítem del usuario logueado: `{ item }` (HU-03)                                                                |
+| GET    | `/api/items/:id`      | Sí   | Detalle del ítem con su dueño: `{ item, owner }` (HU-05). Un `PAUSADO` ajeno o un `ELIMINADO` responde 404              |
+| PATCH  | `/api/items/:id`      | Sí   | Edita un ítem propio, o lo pausa y reactiva: `{ item }` (HU-14)                                                         |
+| DELETE | `/api/items/:id`      | Sí   | Elimina lógicamente un ítem propio y cancela sus propuestas pendientes: 204 (HU-15)                                     |
+| POST   | `/api/uploads`        | Sí   | Sube una foto (JPG/PNG/WebP, hasta 5 MB): `{ url }` (HU-13)                                                             |
+| GET    | `/api/users/me/items` | Sí   | Ítems del token: `{ data }`. `?status=` opcional; sin filtro incluye pausados                                           |
+| GET    | `/api/users/:id`      | Sí   | Perfil público: nombre, carrera, reputación, intercambios, ítems disponibles y 5 calificaciones. Sin email              |
+| GET    | `/api/proposals`      | Sí   | Propuestas del token: `{ data }`. `?status=` opcional. Trae persona, ítems y calificaciones                             |
+| PATCH  | `/api/proposals/:id`  | Sí   | Ejecuta una acción sobre una propuesta: `{ accion: "concretar" }` pasa a CONCRETADA y los ítems a INTERCAMBIADO (HU-17) |
 
 `GET /api/users/me/items` usa el id del token, nunca un id de la URL. `status` tiene que ser `DISPONIBLE`, `RESERVADO`, `PAUSADO` o `INTERCAMBIADO`. Un valor inválido responde 400.
 

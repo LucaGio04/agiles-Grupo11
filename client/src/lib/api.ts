@@ -104,8 +104,12 @@ export function getMyProposals(status?: EstadoPropuesta, type?: TipoPropuesta) {
 }
 
 // El receptor acepta o rechaza una propuesta pendiente.
-export function respondProposal(id: number, accion: 'aceptar' | 'rechazar') {
-  return apiFetch<{ data: Intercambio }>(`/api/proposals/${id}`, {
+// Acción sobre una propuesta: aceptar / rechazar (HU-08), cancelar (HU-16) o concretar (HU-17).
+export function respondProposal(
+  id: number,
+  accion: 'aceptar' | 'rechazar' | 'cancelar' | 'concretar'
+) {
+  return apiFetch<{ data?: Intercambio; message?: string }>(`/api/proposals/${id}`, {
     method: 'PATCH',
     body: { accion },
   });
