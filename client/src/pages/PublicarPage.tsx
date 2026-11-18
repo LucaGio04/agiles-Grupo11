@@ -185,7 +185,7 @@ export function PublicarPage() {
         };
         await apiFetch<{ item: Item }>(`/api/items/${id}`, { method: 'PATCH', body });
         showToast('¡Listo! Los cambios fueron guardados.', 'ok');
-        navigate(`/items/${id}`, { state: { flash: '¡Listo! Los cambios fueron guardados.' } });
+        navigate(`/items/${id}`);
       } else {
         const body: CreateItemData = {
           titulo: titulo.trim(),
@@ -197,9 +197,7 @@ export function PublicarPage() {
         };
         const { item } = await apiFetch<{ item: Item }>('/api/items', { method: 'POST', body });
         showToast('¡Listo! Tu material ya está publicado.', 'ok');
-        navigate(`/items/${item.id}`, {
-          state: { flash: '¡Listo! Tu material ya está publicado.' },
-        });
+        navigate(`/items/${item.id}`);
       }
     } catch (err: unknown) {
       if (err instanceof ApiError) {

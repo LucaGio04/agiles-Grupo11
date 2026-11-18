@@ -19,10 +19,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {toasts.length > 0 && (
         <div className="toast-container" role="status" aria-live="polite">
           {toasts.map((t) => (
-            <div
-              key={t.id}
-              className={`toast ${t.kind === 'ok' ? 'form-success' : 'form-error'}`}
-            >
+            <div key={t.id} className={`toast ${t.kind === 'ok' ? 'form-success' : 'form-error'}`}>
               {t.message}
             </div>
           ))}

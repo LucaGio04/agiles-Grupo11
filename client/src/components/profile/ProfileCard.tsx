@@ -49,7 +49,6 @@ export function ProfileCard() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +74,6 @@ export function ProfileCard() {
     setCarrera(current.user.carrera);
     setFieldErrors({});
     setSaveError(null);
-    setSaved(false);
     setEditing(true);
   }
 
@@ -101,7 +99,6 @@ export function ProfileCard() {
       // La navbar y el resto de la app usan el usuario de la sesión: se actualiza también.
       updateUser({ id, email, nombre: updated.user.nombre, carrera: updated.user.carrera });
       setEditing(false);
-      setSaved(true);
       showToast('Perfil actualizado con éxito.', 'ok');
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 400 && Array.isArray(err.details)) {
@@ -159,12 +156,6 @@ export function ProfileCard() {
           </Button>
         )}
       </header>
-
-      {saved && (
-        <p className="form-success" role="status">
-          Listo, actualizamos tus datos.
-        </p>
-      )}
 
       {editing ? (
         <form className="profile-form" onSubmit={handleSubmit} noValidate>
